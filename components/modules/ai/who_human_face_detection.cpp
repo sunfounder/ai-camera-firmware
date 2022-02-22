@@ -35,7 +35,6 @@ static void task_process_handler(void *arg)
     {
         if (gEvent)
         {
-            // bool is_detected = false;
             if (xQueueReceive(xQueueFrameI, &frame, portMAX_DELAY))
             {
 #if TWO_STAGE_ON
@@ -47,8 +46,6 @@ static void task_process_handler(void *arg)
 
                 if (detect_results.size() > 0) {
                     draw_detection_result((uint16_t *)frame->buf, frame->height, frame->width, detect_results);
-                    // print_detection_result(detect_results);
-                    // is_detected = true;
                     get_detection_result(detect_results, result);
                     if (xQueueResult) {
                         xQueueSend(xQueueResult, &result, portMAX_DELAY);
