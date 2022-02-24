@@ -1,10 +1,10 @@
 
-#define I2C_SLAVE_NUM 0
-#define I2C_SLAVE_SDA_IO 21
-#define I2C_SLAVE_SCL_IO 22
+#define UART_NUM UART_NUM_2
+#define UART_BUFFER_LENGTH 1024*4
+#define UART_TX_PIN 21
+#define UART_RX_PIN 22
+
 #define DATA_LENGTH 512
-#define I2C_SLAVE_TX_BUF_LEN (2 * DATA_LENGTH) // I2C slave tx buffer size
-#define I2C_SLAVE_RX_BUF_LEN (2 * DATA_LENGTH) // I2C slave rx buffer size
 
 #define STORAGE_NAMESPADE "ESP_AI_CAM"
 
