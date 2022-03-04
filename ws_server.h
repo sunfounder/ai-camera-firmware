@@ -3,17 +3,11 @@
 class WS_Server {
   public:
     WS_Server();
+    void begin(int port);
     void loop();
-    bool is_connected();
+    void send(String data);
 
   private:
-    String ssid, password;
-    int mode;
-    String rxBuf = "";
     int port;
-
-    String serialRead();
-    void handleSet(String cmd);
-    void handleGet(String cmd);
 };
 
