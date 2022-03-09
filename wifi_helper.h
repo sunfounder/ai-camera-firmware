@@ -1,3 +1,5 @@
+#ifndef __WIFI_HELPER_H__
+#define __WIFI_HELPER_H__
 
 // Mode
 #define NONE 0
@@ -17,3 +19,5 @@ class WiFiHelper {
     bool connect_AP(); 
     bool connect_STA();
 };
+
+#endif // __WIFI_HELPER_H__

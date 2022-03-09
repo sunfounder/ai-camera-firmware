@@ -1,10 +1,6 @@
 #include "ws_server.h"
 #include <ArduinoJson.h>
-#include "wifi_helper.h"
 
-#define SERIAL_TIMEOUT 100 // 100ms
-
-WiFiHelper wifi = WiFiHelper();
 WebSocketsServer ws = WebSocketsServer(8765);
 uint8_t client_num = 0;
 

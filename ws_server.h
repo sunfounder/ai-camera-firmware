@@ -1,3 +1,6 @@
+#ifndef __WS_SERVER_H__
+#define __WS_SERVER_H__
+
 #include <WebSocketsServer.h>
 
 class WS_Server {
@@ -11,3 +14,4 @@ class WS_Server {
     int port;
 };
 
+#endif // __WS_SERVER_H__
