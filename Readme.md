@@ -2,6 +2,20 @@
 
 This is a firmware read convert uart command and create a websocket server. It's originally for Arduino or Raspberry Pi Pico to connect to SunFounder Controller. Send command and data over UART in boardrate 115200
 
+## Flash Setting
+
+Board: "ESP32 Dev Module"
+Upload Speed: "460800" - 可以尝试最快速度，可以下载更快，但有些烧录器不支持
+CPU Frequency: "240MHz (WiFi/BT)"
+Flash Frequency: "80MHz"
+Flash Mode: "QIO"
+Flash Size: "4MB (32Mb)"
+Partition Scheme: "Huge APP (3MB No OTA/1MB SPIFFS)" - 代码太大，必须选这个
+Core Debug Level: "None"
+PSRAM: "Enabled" - 要打开PSRAM，否则程序运行会错误
+Arduino Runs On: "Core 1"
+Events Run On: "Core 1"
+
 ## Commands
 
 `SET+SSID<ssid>`: set Wi-Fi SSID
@@ -40,16 +54,10 @@ SET+START
 SET+RESET
 ```
 
-`SET+CAMERA_MODE`: set Camera mode, AI = 0, Stream = 1, Both = 2
+`SET+CAMERA_MODE`: set Camera pixel format, AI = 0, Stream = 1, Both = 2. AI need RGB565 format, Stream need JPEG format. In Stream-Only mode, camera output JPEG format directly, makes fps higher. In AI-only camera output RGB565, and doestn't need to convert to JPEG and stream, makes fps a little bit higher to 3 fps. In Both mode, camera output RGB565 format for AI than convert to JPEG for stream, makes fps low to 2 fps.
 
 ```
 SET+CAMERA_MODE2
-```
-
-`SET+CAMERA_PIXEL_FORMAT`: set Camera pixel format, AI = 0, Stream = 1, Both = 2
-
-```
-SET+CAMERA_PIXEL_FORMAT
 ```
 
 ## Data

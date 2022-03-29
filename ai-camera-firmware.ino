@@ -1,12 +1,16 @@
 #include "who_camera.h"
 #include "camera_server.hpp"
 #include "who_human_face_detection.hpp"
-#include "pins.h"
+#include "who_color_detection.hpp"
 #include "ws_server.h"
 #include "wifi_helper.h"
 
+#define ESP32_CAM
+// #define TTGO_CAMERA
+#include "pins.h"
+
 // for production, uncomment this line
-#define DEBUG
+// #define DEBUG
 
 #define SERIAL_TIMEOUT 100
 #define CAMERA_VERTICAL_FLIP 1
@@ -25,13 +29,12 @@ String password = "12345678";
 int port = 8765;
 int mode = AP;
 String rxBuf = "";
-bool is_stream_on = false;
 
 static QueueHandle_t xQueueAIFrame = NULL;
 static QueueHandle_t xQueueHttpFrame = NULL;
 static QueueHandle_t xQueueAIData = NULL;
 bool is_camera_started = false;
-int camera_mode = CAMERA_MODE_BOTH;
+int camera_mode = CAMERA_MODE_STREAM;
 
 // Functions
 void camera_init();
@@ -47,7 +50,7 @@ void error(String msg, String data);
 
 void setup() {
   Serial.begin(115200);
-  // Serial.setTimeout(SERIAL_TIMEOUT);
+  Serial.setTimeout(SERIAL_TIMEOUT);
 
   debug("Start!");
   Serial.println("\r\n[OK]");
@@ -58,9 +61,9 @@ void loop() {
   if (rxBuf.length() > 0) {
     debug("RX Receive: ", rxBuf);
     // delay(10);
-    if (rxBuf.substring(0, 4) == "SET+"){
+    if (rxBuf.substring(0, 4) == "SET+") {
       handleSet(rxBuf.substring(4));
-    } else if (rxBuf.substring(0, 3) == "WS+"){
+    } else if (rxBuf.substring(0, 3) == "WS+") {
       String out = rxBuf.substring(3);
       debug("Read from Serial: ", out);
       ws_server.send(out);
@@ -70,42 +73,38 @@ void loop() {
   if (wifi.is_connected && !is_camera_started){
     camera_init();
   }
-  if (is_camera_started) {
+  if (is_camera_started && (camera_mode == CAMERA_MODE_AI || camera_mode == CAMERA_MODE_BOTH)) {
     ai_data_handler();
   }
 }
 
 void camera_init(){
-  // xQueueAIFrame = xQueueCreate(2, sizeof(camera_fb_t *));
-  // xQueueHttpFrame = xQueueCreate(2, sizeof(camera_fb_t *));
-  // xQueueAIData = xQueueCreate(2, sizeof(int) * 4);
-  xQueueAIFrame = xQueueCreate(1, sizeof(camera_fb_t *));
-  xQueueHttpFrame = xQueueCreate(1, sizeof(camera_fb_t *));
-  xQueueAIData = xQueueCreate(1, sizeof(int) * 4);
+  xQueueAIFrame = xQueueCreate(2, sizeof(camera_fb_t *));
+  xQueueHttpFrame = xQueueCreate(2, sizeof(camera_fb_t *));
+  xQueueAIData = xQueueCreate(2, sizeof(int) * 4);
 
+  pixformat_t pixel_format = PIXFORMAT_JPEG;
   if (camera_mode == CAMERA_MODE_AI || camera_mode == CAMERA_MODE_BOTH) {
-    register_camera(
-        PIXFORMAT_RGB565, FRAMESIZE_QVGA, 1, xQueueAIFrame, CAMERA_VERTICAL_FLIP,
-        CAMERA_PIN_Y2, CAMERA_PIN_Y3, CAMERA_PIN_Y4, CAMERA_PIN_Y5, CAMERA_PIN_Y6,
-        CAMERA_PIN_Y7, CAMERA_PIN_Y8, CAMERA_PIN_Y9, CAMERA_PIN_XCLK,
-        CAMERA_PIN_PCLK, CAMERA_PIN_VSYNC, CAMERA_PIN_HREF, CAMERA_PIN_SIOD,
-        CAMERA_PIN_SIOC, CAMERA_PIN_PWDN, CAMERA_PIN_RESET);
+    pixel_format = PIXFORMAT_RGB565;
   } else {
-    register_camera(
-        PIXFORMAT_JPEG, FRAMESIZE_QVGA, 1, xQueueAIFrame, CAMERA_VERTICAL_FLIP,
-        CAMERA_PIN_Y2, CAMERA_PIN_Y3, CAMERA_PIN_Y4, CAMERA_PIN_Y5, CAMERA_PIN_Y6,
-        CAMERA_PIN_Y7, CAMERA_PIN_Y8, CAMERA_PIN_Y9, CAMERA_PIN_XCLK,
-        CAMERA_PIN_PCLK, CAMERA_PIN_VSYNC, CAMERA_PIN_HREF, CAMERA_PIN_SIOD,
-        CAMERA_PIN_SIOC, CAMERA_PIN_PWDN, CAMERA_PIN_RESET);
+    pixel_format = PIXFORMAT_JPEG;
   }
+  register_camera(
+      pixel_format, FRAMESIZE_QVGA, 1, xQueueAIFrame, CAMERA_VERTICAL_FLIP,
+      CAMERA_PIN_Y2, CAMERA_PIN_Y3, CAMERA_PIN_Y4, CAMERA_PIN_Y5, CAMERA_PIN_Y6,
+      CAMERA_PIN_Y7, CAMERA_PIN_Y8, CAMERA_PIN_Y9, CAMERA_PIN_XCLK,
+      CAMERA_PIN_PCLK, CAMERA_PIN_VSYNC, CAMERA_PIN_HREF, CAMERA_PIN_SIOD,
+      CAMERA_PIN_SIOC, CAMERA_PIN_PWDN, CAMERA_PIN_RESET);
   switch (camera_mode) {
     case CAMERA_MODE_AI:
+      // register_color_detection(xQueueAIFrame, NULL, NULL, NULL, true);
       register_human_face_detection(xQueueAIFrame, NULL, xQueueAIData, NULL, true);
       break;
     case CAMERA_MODE_STREAM:
       register_httpd(xQueueAIFrame, NULL, true);
       break;
     case CAMERA_MODE_BOTH:
+      // register_color_detection(xQueueAIFrame, NULL, NULL, xQueueHttpFrame, true);
       register_human_face_detection(xQueueAIFrame, NULL, xQueueAIData, xQueueHttpFrame, true);
       register_httpd(xQueueHttpFrame, NULL, true);
       break;
@@ -141,7 +140,9 @@ String serialRead() {
     inChar = (char)temp;
     if (inChar == '\n') {
       break;
-    } else if((int)inChar != 255){
+    } else if (inchar == '\r') {
+      continue;
+    } else if ((int)inChar != 255) {
       buf += inChar;
     }
   }
@@ -170,28 +171,15 @@ void handleSet(String cmd){
     delay(10);
     ESP.restart();
   } else if (cmd.substring(0, 5) == "START"){
-    if (ssid.length() == 0) {
-      error("Please set ssid");
-    } else if (password.length() == 0) {
-      error("Please set password");
-    } else if (mode == NONE) {
-      error("Please set mode");
-    } else if (port == 0) {
-      error("Please set port");
-    } else{
-      bool result = wifi.connect(mode, ssid, password);
-      if (!result) {
-        error("TIMEOUT");
-      } else {
-        ws_server.begin(port);
-        debug("Websocket on!");
-        Serial.print("[OK] ");Serial.println(wifi.ip);
-      }
-    }
+    start();
   } else if (cmd.substring(0, 11) == "CAMERA_MODE") {
-    camera_mode = cmd.substring(11).toInt();
-    debug("Camera mode: ", CAMERA_MODES[camera_mode]);
-    Serial.println("[OK]");
+    if (is_camera_started) {
+      error("Camera is already started");
+    } else {
+      camera_mode = cmd.substring(11).toInt();
+      debug("Set camera mode: ", CAMERA_MODES[camera_mode]);
+      Serial.println("[OK]");
+    }
   } else {
     error("Unknown command");
   }
@@ -227,4 +215,25 @@ void error(String msg, int data){
 void error(String msg, String data){
   msg = msg + String(data);
   error(msg);
+}
+
+void start() {
+  if (ssid.length() == 0) {
+    error("Please set ssid");
+  } else if (password.length() == 0) {
+    error("Please set password");
+  } else if (mode == NONE) {
+    error("Please set mode");
+  } else if (port == 0) {
+    error("Please set port");
+  } else{
+    bool result = wifi.connect(mode, ssid, password);
+    if (!result) {
+      error("TIMEOUT");
+    } else {
+      ws_server.begin(port);
+      debug("Websocket on!");
+      Serial.print("[OK] ");Serial.println(wifi.ip);
+    }
+  }
 }
