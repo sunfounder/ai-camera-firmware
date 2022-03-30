@@ -140,7 +140,7 @@ String serialRead() {
     inChar = (char)temp;
     if (inChar == '\n') {
       break;
-    } else if (inchar == '\r') {
+    } else if (inChar == '\r') {
       continue;
     } else if ((int)inChar != 255) {
       buf += inChar;
