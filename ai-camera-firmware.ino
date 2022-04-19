@@ -4,6 +4,7 @@
 #include "who_color_detection.hpp"
 #include "ws_server.h"
 #include "wifi_helper.h"
+#include "ArduinoJson.h"
 
 #define ESP32_CAM
 // #define TTGO_CAMERA
@@ -12,6 +13,7 @@
 // for production, uncomment this line
 // #define DEBUG
 
+
 #define SERIAL_TIMEOUT 100
 #define CAMERA_VERTICAL_FLIP 1
 #define CAMERA_MODE_AI 0
@@ -19,12 +21,19 @@
 #define CAMERA_MODE_BOTH 2
 #define STATUS_LED 2
 
+#define CHECK_TEXT "SC"
+
 String CAMERA_MODES[3] = {"AI", "Stream", "AI&Stream"};
 String WIFI_MODES[3] = {"None", "STA", "AP"};
+
+DynamicJsonDocument sendBuffer(WS_BUFFER_SIZE);
 
 WS_Server ws_server = WS_Server();
 WiFiHelper wifi = WiFiHelper();
 
+String name = "AI Camera";
+String type = "AI_Camera";
+String videoUrl = "";
 String ssid = "AI_Camera";
 String password = "12345678";
 int port = 8765;
@@ -68,8 +77,7 @@ void loop() {
       handleSet(rxBuf.substring(4));
     } else if (rxBuf.substring(0, 3) == "WS+") {
       String out = rxBuf.substring(3);
-      debug("Read from Serial: ", out);
-      ws_server.send(out);
+      handleData(out);
     }
   }
   if (millis() - startMillis > 1000) {
@@ -164,7 +172,15 @@ String serialRead() {
 }
 
 void handleSet(String cmd){
-  if (cmd.substring(0, 4) == "SSID"){
+  if (cmd.substring(0, 4) == "NAME"){
+    name = cmd.substring(4);
+    debug("Set NAME: ", name);
+    Serial.println("[OK]");
+  } else if (cmd.substring(0, 4) == "TYPE"){
+    type = cmd.substring(4);
+    debug("Set TYPE: ", type);
+    Serial.println("[OK]");
+  } else if (cmd.substring(0, 4) == "SSID"){
     ssid = cmd.substring(4);
     debug("Set SSID: ", ssid);
     Serial.println("[OK]");
@@ -199,6 +215,111 @@ void handleSet(String cmd){
   }
 }
 
+// test: WS+3;5;10,30;forward;0;1;4;-100;40.4;50,60;-45.5;backward;50564,33630,333
+void handleData(String data) {
+  clearSendBuffer();
+  debug("Data: ", data);
+  for (int i = 0; i < REGIONS_LENGTH; i++) {
+    String str = getStrOf(data, i, ';');
+    String region = String(REGIONS[i]);
+    if (str.indexOf(',') != -1) {
+      JsonArray arr = sendBuffer.createNestedArray(region);
+      uint8_t j =0;
+      while (1) {
+        String value = getStrOf(str, j, ',');
+        if (value.length() == 0) {
+          break;
+        }
+        if (value.indexOf('.') != -1) {
+          arr.add(value.toFloat());
+        } else {
+          arr.add(value.toInt());
+        }
+        j++;
+      }
+    } else if (str.indexOf('.') != -1) {
+      sendBuffer[region] = str.toFloat();
+    } else if (str[0] > '0' && str[0] < '9' || str[0] == '-') {
+      sendBuffer[region] = str.toInt();
+    } else if (str == "true") {
+      sendBuffer[region] = true;
+    } else if (str == "false") {
+      sendBuffer[region] = false;
+    } else {
+      sendBuffer[region] = str;
+    }
+  }
+  char payload[WS_BUFFER_SIZE];
+  serializeJson(sendBuffer, payload);
+  debug("Payload: ", payload);
+  ws_server.send(String(payload));
+}
+
+void clearSendBuffer() {
+  sendBuffer.clear();
+  sendBuffer["Name"] = name;
+  sendBuffer["Type"] = type;
+  sendBuffer["Check"] = CHECK_TEXT;
+  sendBuffer["video"] = videoUrl;
+}
+
+String getStrOf(String str, uint8_t index, char divider) {
+  uint8_t start, end;
+  uint8_t length = str.length();
+  uint8_t i, j;
+  // Get start index
+  if (index == 0) {
+    start = 0;
+  } else {
+    for (start = 0, j = 1; start < length; start++) {
+      if (str[start] == divider) {
+        if (index == j) {
+          start++;
+          break;
+        }
+        j++;
+      }
+    }
+  }
+  // Get end index
+  for (end = start, j = 0; end < length; end++) {
+    // Serial.println((int)str[end]);
+    if (str[end] == divider) {
+      break;
+    }
+  }
+  // Copy result
+  return str.substring(start, end);
+}
+
+void setStrOf(char* str, uint8_t index, String value) {
+  uint8_t start, end;
+  uint8_t length = strlen(str);
+  uint8_t i, j;
+  // Get start index
+  if (index == 0) {
+    start = 0;
+  } else {
+    for (start = 0, j = 1; start < length; start++) {
+      if (str[start] == ';') {
+        if (index == j) {
+          start++;
+          break;
+        }
+        j++;
+      }
+    }
+  }
+  // Get end index
+  for (end = start, j = 0; end < length; end++) {
+    if (str[end] == ';') {
+      break;
+    }
+  }
+  String strValue = String(str).substring(0, start) + value + String(str).substring(end);
+  strcpy(str, strValue.c_str());
+}
+
 void debug(String msg){
   #ifdef DEBUG
   msg = "[DEBUG] " + msg;
@@ -207,6 +328,16 @@ void debug(String msg){
 }
 
 void debug(String msg, int data){
+  msg = msg + String(data);
+  debug(msg);
+}
+
+void debug(String msg, char* data){
+  msg = msg + String(data);
+  debug(msg);
+}
+
+void debug(String msg, char data){
   msg = msg + String(data);
   debug(msg);
 }
@@ -248,6 +379,8 @@ void start() {
       ws_server.begin(port);
       debug("Websocket on!");
       Serial.print("[OK] ");Serial.println(wifi.ip);
+      videoUrl = String("http://") + wifi.ip + ":9000/mjpg";
+      clearSendBuffer();
     }
   }
 }

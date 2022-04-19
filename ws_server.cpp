@@ -47,16 +47,35 @@ static void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_
       // Serial.printf("[DEBUG] [%u] Received text: ", client_num);
       // #endif
       out = intToString(payload, length);
-      #ifdef DEBUG
-      Serial.print("[DEBUG] [WS] Received text: ");Serial.println(out);
-      #endif
-      Serial.print("WS+");
-      Serial.println(out);
-      // out = serialReadBlock();
       // #ifdef DEBUG
-      // Serial.print("[DEBUG] Read from Serial: ");Serial.println(out);
+      // Serial.print("[DEBUG] [WS] Received text: ");Serial.println(out);
       // #endif
-      // ws.sendTXT(client_num, out);
+      DynamicJsonDocument recvBuffer(WS_BUFFER_SIZE);
+      deserializeJson(recvBuffer, out);
+      String result = "WS+";
+      for (int i=0; i<REGIONS_LENGTH; i++){
+        String region = String(REGIONS[i]);
+        String value;
+        if (recvBuffer[region].is<JsonArray>()) {
+          for (int j=0; j<recvBuffer[region].size(); j++) {
+            value += recvBuffer[region][j].as<String>();
+            if (j != recvBuffer[region].size()-1) value += ',';
+          }
+        } else {
+          value = recvBuffer[region].as<String>();
+        }
+        // #ifdef DEBUG
+        // Serial.print(region);Serial.print(": ");Serial.println(value);
+        // #endif
+        if (value == "true") value = "1";
+        else if (value == "false") value = "0";
+        if (value != "null") result += value;
+        if (i != REGIONS_LENGTH - 1) result += ';';
+      }
+      // #ifdef DEBUG
+      // Serial.print("[DEBUG] [WS] Send over serial: ");
+      // #endif
+      Serial.println(result);
       break;
     }
     // For everything else: do nothing
