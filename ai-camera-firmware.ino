@@ -17,6 +17,7 @@
 #define CAMERA_MODE_AI 0
 #define CAMERA_MODE_STREAM 1
 #define CAMERA_MODE_BOTH 2
+#define STATUS_LED 2
 
 String CAMERA_MODES[3] = {"AI", "Stream", "AI&Stream"};
 String WIFI_MODES[3] = {"None", "STA", "AP"};
@@ -29,6 +30,7 @@ String password = "12345678";
 int port = 8765;
 int mode = AP;
 String rxBuf = "";
+double startMillis = 0;
 
 static QueueHandle_t xQueueAIFrame = NULL;
 static QueueHandle_t xQueueHttpFrame = NULL;
@@ -52,6 +54,7 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(SERIAL_TIMEOUT);
 
+  pinMode(STATUS_LED, OUTPUT);
   debug("Start!");
   Serial.println("\r\n[OK]");
 }
@@ -69,9 +72,20 @@ void loop() {
       ws_server.send(out);
     }
   }
-  ws_server.loop();
-  if (wifi.is_connected && !is_camera_started){
-    camera_init();
+  if (millis() - startMillis > 1000) {
+    startMillis = millis();
+    digitalWrite(STATUS_LED, 1);
+  }
+  if (wifi.is_connected) {
+    ws_server.loop();
+    if (!is_camera_started){
+      camera_init();
+    }
+  } else {
+    if (millis() - startMillis > 2000) {
+      startMillis = millis();
+      digitalWrite(STATUS_LED, 0);
+    }
   }
   if (is_camera_started && (camera_mode == CAMERA_MODE_AI || camera_mode == CAMERA_MODE_BOTH)) {
     ai_data_handler();
@@ -135,7 +149,7 @@ String serialRead() {
   char inChar;
   int temp;
   unsigned long timeoutStart = millis();
-  while (Serial.available() && millis() - timeoutStart < SERIAL_TIMEOUT) {
+  while (Serial.available() || millis() - timeoutStart < SERIAL_TIMEOUT) {
     temp = Serial.read();
     inChar = (char)temp;
     if (inChar == '\n') {
