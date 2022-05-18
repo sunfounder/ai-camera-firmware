@@ -13,6 +13,8 @@
 // for production, uncomment this line
 // #define DEBUG
 
+// #define FRAMESIZE FRAMESIZE_QVGA // 320x240
+#define FRAMESIZE FRAMESIZE_VGA // 640x480
 
 #define SERIAL_TIMEOUT 100
 #define CAMERA_VERTICAL_FLIP 1
@@ -112,7 +114,7 @@ void camera_init(){
     pixel_format = PIXFORMAT_JPEG;
   }
   register_camera(
-      pixel_format, FRAMESIZE_QVGA, 1, xQueueAIFrame, CAMERA_VERTICAL_FLIP,
+      pixel_format, FRAMESIZE, 1, xQueueAIFrame, CAMERA_VERTICAL_FLIP,
       CAMERA_PIN_Y2, CAMERA_PIN_Y3, CAMERA_PIN_Y4, CAMERA_PIN_Y5, CAMERA_PIN_Y6,
       CAMERA_PIN_Y7, CAMERA_PIN_Y8, CAMERA_PIN_Y9, CAMERA_PIN_XCLK,
       CAMERA_PIN_PCLK, CAMERA_PIN_VSYNC, CAMERA_PIN_HREF, CAMERA_PIN_SIOD,
