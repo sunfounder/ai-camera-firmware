@@ -14,16 +14,21 @@
 // #define DEBUG
 
 // #define FRAMESIZE FRAMESIZE_QVGA // 320x240
-#define FRAMESIZE FRAMESIZE_VGA // 640x480
+// #define FRAMESIZE FRAMESIZE_VGA // 640x480
+// #define FRAMESIZE FRAMESIZE_SVGA // 800x600
+#define FRAMESIZE FRAMESIZE_XGA // 1024x768
+// #define FRAMESIZE FRAMESIZE_HD // 1280x720
 
 #define SERIAL_TIMEOUT 100
 #define CAMERA_VERTICAL_FLIP 1
+#define CAMERA_HORIZONTAL_FLIP 1
 #define CAMERA_MODE_AI 0
 #define CAMERA_MODE_STREAM 1
 #define CAMERA_MODE_BOTH 2
 #define STATUS_LED 2
 
 #define CHECK_TEXT "SC"
+#define IsStartWith(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
 
 String CAMERA_MODES[3] = {"AI", "Stream", "AI&Stream"};
 String WIFI_MODES[3] = {"None", "STA", "AP"};
@@ -32,12 +37,14 @@ DynamicJsonDocument sendBuffer(WS_BUFFER_SIZE);
 
 WS_Server ws_server = WS_Server();
 WiFiHelper wifi = WiFiHelper();
+bool ws_server_available = false;
 
 String name = "AI Camera";
 String type = "AI_Camera";
 String videoUrl = "";
-String ssid = "AI_Camera";
-String password = "12345678";
+// String ssid = "AI_Camera";
+String ssid = "xiaoming_cam";
+String password = "sunfounder";
 int port = 8765;
 int mode = AP;
 String rxBuf = "";
@@ -48,6 +55,7 @@ static QueueHandle_t xQueueHttpFrame = NULL;
 static QueueHandle_t xQueueAIData = NULL;
 bool is_camera_started = false;
 int camera_mode = CAMERA_MODE_STREAM;
+uint8_t led_status = 0;
 
 // Functions
 void camera_init();
@@ -60,17 +68,47 @@ void debug(String msg, String data);
 void error(String msg);
 void error(String msg, int data);
 void error(String msg, String data);
+void start();
+void handleData(String data);
+
 
 void setup() {
   Serial.begin(115200);
   Serial.setTimeout(SERIAL_TIMEOUT);
+  Serial.print(F("Ininting ..."));
 
-  pinMode(STATUS_LED, OUTPUT);
-  debug("Start!");
-  Serial.println("\r\n[OK]");
+  pinMode(CAMERA_PIN_LED, OUTPUT);
+  digitalWrite(CAMERA_PIN_LED, 1);  // 0:turn off LED
+  // pinMode(CAMERA_PIN_FLASH, OUTPUT);
+  // digitalWrite(CAMERA_PIN_LED, 0);  // 0:turn on LED
+  // digitalWrite(CAMERA_PIN_FLASH, 1); // 1:turn on Flash lamp, different from led
+  // delay(200);
+  // digitalWrite(CAMERA_PIN_FLASH, 0);
+  // start();
+
+  log_i("psram: %d", psramFound());
+  log_i("Total heap: %d", ESP.getHeapSize());
+  log_i("Free heap: %d", ESP.getFreeHeap());
+  log_i("Total PSRAM: %d", ESP.getPsramSize());
+  log_i("Free PSRAM: %d", ESP.getFreePsram());
+  Serial.println(F("[OK]"));
+
 }
 
 void loop() {
+  // ws_server connection status led
+  if (millis() - startMillis > 500) {
+    startMillis = millis();
+    if (ws_server.is_connected() == false) {
+      led_status = !led_status;
+      digitalWrite(CAMERA_PIN_LED, led_status); // LED1 blink
+    }
+    else{
+      digitalWrite(CAMERA_PIN_LED, 0);  // 0:turn on LED
+    }
+  }
+
+  // serial receive
   rxBuf = serialRead();
   if (rxBuf.length() > 0) {
     debug("RX Receive: ", rxBuf);
@@ -82,21 +120,16 @@ void loop() {
       handleData(out);
     }
   }
-  if (millis() - startMillis > 1000) {
-    startMillis = millis();
-    digitalWrite(STATUS_LED, 1);
-  }
+
+  // websocket && camera
   if (wifi.is_connected) {
     ws_server.loop();
     if (!is_camera_started){
       camera_init();
     }
-  } else {
-    if (millis() - startMillis > 2000) {
-      startMillis = millis();
-      digitalWrite(STATUS_LED, 0);
-    }
-  }
+  } 
+
+  // AI mode  
   if (is_camera_started && (camera_mode == CAMERA_MODE_AI || camera_mode == CAMERA_MODE_BOTH)) {
     ai_data_handler();
   }
@@ -107,14 +140,23 @@ void camera_init(){
   xQueueHttpFrame = xQueueCreate(2, sizeof(camera_fb_t *));
   xQueueAIData = xQueueCreate(2, sizeof(int) * 4);
 
+  log_i("Free PSRAM: %d", ESP.getFreePsram());
+  Serial.print(F("camera init by mode:"));
+  Serial.println(camera_mode);
+
   pixformat_t pixel_format = PIXFORMAT_JPEG;
   if (camera_mode == CAMERA_MODE_AI || camera_mode == CAMERA_MODE_BOTH) {
-    pixel_format = PIXFORMAT_RGB565;
+      if (!psramFound()) {
+        Serial.println(F("PSRAM not found. Please enable PSRAM before using CAMERA_MODE_AI !"));
+        while (1);
+      }else{
+            pixel_format = PIXFORMAT_RGB565;
+      }
   } else {
     pixel_format = PIXFORMAT_JPEG;
-  }
+  } 
   register_camera(
-      pixel_format, FRAMESIZE, 1, xQueueAIFrame, CAMERA_VERTICAL_FLIP,
+      pixel_format, FRAMESIZE, 2, xQueueAIFrame, CAMERA_VERTICAL_FLIP, CAMERA_HORIZONTAL_FLIP,
       CAMERA_PIN_Y2, CAMERA_PIN_Y3, CAMERA_PIN_Y4, CAMERA_PIN_Y5, CAMERA_PIN_Y6,
       CAMERA_PIN_Y7, CAMERA_PIN_Y8, CAMERA_PIN_Y9, CAMERA_PIN_XCLK,
       CAMERA_PIN_PCLK, CAMERA_PIN_VSYNC, CAMERA_PIN_HREF, CAMERA_PIN_SIOD,
@@ -137,6 +179,8 @@ void camera_init(){
       while (1);
       break;
   }
+  log_i("Free PSRAM after init: %d", ESP.getFreePsram());
+
   is_camera_started = true;
 }
 
@@ -378,8 +422,13 @@ void start() {
     if (!result) {
       error("TIMEOUT");
     } else {
-      ws_server.begin(port);
-      debug("Websocket on!");
+      if (ws_server_available == false) {
+        ws_server.begin(port);
+        ws_server_available = true;
+        debug("Websocket on!");
+      } else {
+        debug("Websocket already on!");
+      } 
       Serial.print("[OK] ");Serial.println(wifi.ip);
       videoUrl = String("http://") + wifi.ip + ":9000/mjpg";
       clearSendBuffer();

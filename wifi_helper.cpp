@@ -6,6 +6,11 @@ WiFiHelper::WiFiHelper() {
 }
 
 bool WiFiHelper::connect_STA(){
+
+  Serial.println(F("Connecting to WiFi ..."));
+  Serial.print(F("ssid:"));Serial.println(ssid);
+  Serial.print(F("psk:"));Serial.println(password);
+
   // Connect to wifi
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid.c_str(), password.c_str());
@@ -19,6 +24,7 @@ bool WiFiHelper::connect_STA(){
     #ifdef DEBUG
     Serial.print(".");
     #endif
+    Serial.println(WiFi.status());
     delay(500);
     count ++;
     if (count > 30){
@@ -44,7 +50,6 @@ bool WiFiHelper::connect_AP(){
 bool WiFiHelper::connect(int mode, String _ssid, String _password){
   bool ret;
   ssid = _ssid;
-  password = _password;
 
   #ifdef DEBUG
   Serial.print("[DEBUG] Mode:");

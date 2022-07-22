@@ -34,4 +34,8 @@
 #define CAMERA_PIN_Y7    39
 #define CAMERA_PIN_Y8    34
 #define CAMERA_PIN_Y9    35
+#define CAMERA_PIN_FLASH   4
+#define CAMERA_PIN_LED   33
+
 #endif
+

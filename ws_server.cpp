@@ -3,6 +3,8 @@
 
 WebSocketsServer ws = WebSocketsServer(8765);
 uint8_t client_num = 0;
+bool ws_connected = false;
+// #define DEBUG
 
 WS_Server::WS_Server() {}
 
@@ -28,6 +30,7 @@ static void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_
       #endif
       IPAddress remoteIp = ws.remoteIP(client_num);
       Serial.print("[DISCONNECTED] ");Serial.println(remoteIp.toString());
+      ws_connected = false;
       break;
     }
     // New client has connected
@@ -40,6 +43,7 @@ static void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_
       Serial.print("[CONNECTED] ");Serial.println(remoteIp.toString());
       // out = serialReadBlock();
       // ws.sendTXT(client_num, out);
+      ws_connected = true;
       break;
     }
     case WStype_TEXT:{
@@ -152,3 +156,8 @@ void WS_Server::loop() {
 void WS_Server::send(String data) {
   ws.sendTXT(client_num, data);
 }
+
+bool WS_Server::is_connected() {
+  return ws_connected;
+}
+

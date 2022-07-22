@@ -13,6 +13,7 @@ class WS_Server {
     void begin(int port);
     void loop();
     void send(String data);
+    bool is_connected();
 
   private:
     int port;
