@@ -20,11 +20,21 @@
            https://docs.sunfounder.com
  *******************************************************************/
 
+#include "led_status.hpp"
+#include "who_camera.h"
+#include "camera_server.hpp"
+#include "ws_server.h"
+#include "wifi_helper.h"
+#include "ArduinoJson.h"
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
+
 /*
   Select development board
 */
 #define ESP32_CAM
 // #define TTGO_CAMERA
+#include "pins.h"
 
 /*
   Set Wifi mode, SSID and password
@@ -76,15 +86,6 @@ String videoUrl = "";
 */
 #define SERIAL_TIMEOUT 100
 
-#include "pins.h"
-#include "led_status.hpp"
-#include "who_camera.h"
-#include "camera_server.hpp"
-#include "ws_server.h"
-#include "wifi_helper.h"
-#include "ArduinoJson.h"
-#include "soc/soc.h"
-#include "soc/rtc_cntl_reg.h"
 
 String WIFI_MODES[3] = {"None", "STA", "AP"};
 DynamicJsonDocument sendBuffer(WS_BUFFER_SIZE);
