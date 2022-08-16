@@ -1,113 +1,153 @@
-#include "who_camera.h"
-#include "camera_server.hpp"
-#include "who_human_face_detection.hpp"
-#include "who_color_detection.hpp"
-#include "ws_server.h"
-#include "wifi_helper.h"
-#include "ArduinoJson.h"
+/*******************************************************************
+  Camera firmware for serial communication with the lower computer，
+  and wenbsocket communication with the Sunfounder Controller APP,
+  targeted at ESP32-CAM and TTGO_CAMERA.
 
+  Development test environment:
+    - Arduino IDE 1.8.19
+  Board tools:
+    - Arduino AVR Boards 1.8.3
+    - esp32 2.0.3
+  Libraries:
+    - ArduinoJson
+    - WebSockets
+
+  Version: 1.0.0
+    -- https://github.com/sunfounder/ai-camera-firmware
+  
+  Author: Sunfounder
+  Website: http://www.sunfounder.com
+           https://docs.sunfounder.com
+ *******************************************************************/
+
+/*
+  Select development board
+*/
 #define ESP32_CAM
 // #define TTGO_CAMERA
-#include "pins.h"
 
-// for production, uncomment this line
-// #define DEBUG
+/*
+  Set Wifi mode, SSID and password
+*/
+int mode = STA;  // STA or AP
+String ssid = "xxxxxxxx";
+String password = "xxxxxxxx";
 
-// #define FRAMESIZE FRAMESIZE_QVGA // 320x240
-// #define FRAMESIZE FRAMESIZE_VGA // 640x480
-// #define FRAMESIZE FRAMESIZE_SVGA // 800x600
-#define FRAMESIZE FRAMESIZE_XGA // 1024x768
-// #define FRAMESIZE FRAMESIZE_HD // 1280x720
+/*
+  Set websockets port
+*/
+int port = 8765;  // Sunfounder Controller APP fixed using port 8765
 
-#define SERIAL_TIMEOUT 100
-#define CAMERA_VERTICAL_FLIP 1
-#define CAMERA_HORIZONTAL_FLIP 1
-#define CAMERA_MODE_AI 0
-#define CAMERA_MODE_STREAM 1
-#define CAMERA_MODE_BOTH 2
-#define STATUS_LED 2
-
-#define CHECK_TEXT "SC"
-#define IsStartWith(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
-
-String CAMERA_MODES[3] = {"AI", "Stream", "AI&Stream"};
-String WIFI_MODES[3] = {"None", "STA", "AP"};
-
-DynamicJsonDocument sendBuffer(WS_BUFFER_SIZE);
-
-WS_Server ws_server = WS_Server();
-WiFiHelper wifi = WiFiHelper();
-bool ws_server_available = false;
-
+/*
+  Set check info for Sunfounder Controller APP
+*/
 String name = "AI Camera";
 String type = "AI_Camera";
 String videoUrl = "";
-// String ssid = "AI_Camera";
-String ssid = "xiaoming_cam";
-String password = "sunfounder";
-int port = 8765;
-int mode = AP;
-String rxBuf = "";
-double startMillis = 0;
+#define CHECK_TEXT "SC"
 
-static QueueHandle_t xQueueAIFrame = NULL;
+/*
+  Set the Debug Level
+*/
+#define DEBUG_LEVEL CAM_DEBUG_LEVEL_INFO
+#define CAM_DEBUG_LEVEL_OFF 0
+#define CAM_DEBUG_LEVEL_ERROR 1
+#define CAM_DEBUG_LEVEL_INFO 2
+#define CAM_DEBUG_LEVEL_DEBUG 3
+#define CAM_DEBUG_LEVEL_ALL 4
+
+/*
+  Set the camera resolution
+*/
+// #define FRAMESIZE FRAMESIZE_QVGA // 320x240
+#define FRAMESIZE FRAMESIZE_VGA // 640x480
+// #define FRAMESIZE FRAMESIZE_SVGA // 800x600
+// #define FRAMESIZE FRAMESIZE_XGA // 1024x768
+// #define FRAMESIZE FRAMESIZE_HD // 1280x720
+
+/*
+  Set the camera flip
+*/
+#define CAMERA_VERTICAL_FLIP 1
+#define CAMERA_HORIZONTAL_FLIP 1
+
+/*
+  Set the SERIAL_TIMEOUT (ms)
+*/
+#define SERIAL_TIMEOUT 100
+
+#include "pins.h"
+#include "led_status.hpp"
+#include "who_camera.h"
+#include "camera_server.hpp"
+#include "ws_server.h"
+#include "wifi_helper.h"
+#include "ArduinoJson.h"
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
+
+String WIFI_MODES[3] = {"None", "STA", "AP"};
+DynamicJsonDocument sendBuffer(WS_BUFFER_SIZE);
+WS_Server ws_server = WS_Server();
+WiFiHelper wifi = WiFiHelper();
+bool ws_server_available = false;
+String rxBuf = "";
 static QueueHandle_t xQueueHttpFrame = NULL;
-static QueueHandle_t xQueueAIData = NULL;
 bool is_camera_started = false;
-int camera_mode = CAMERA_MODE_STREAM;
-uint8_t led_status = 0;
 
 // Functions
+#define IsStartWith(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
 void camera_init();
-void ai_data_handler();
 String serialRead();
 void handleSet(String cmd);
-void debug(String msg);
-void debug(String msg, int data);
-void debug(String msg, String data);
-void error(String msg);
-void error(String msg, int data);
-void error(String msg, String data);
 void start();
 void handleData(String data);
+void led_status_handle();
+void debug(String msg);
+void info(String msg);
+void error(String msg);
+void debug(String msg, String data);
+void info(String msg, String data);
+void error(String msg, String data);
 
 
 void setup() {
   Serial.begin(115200);
   Serial.setTimeout(SERIAL_TIMEOUT);
-  Serial.print(F("Ininting ..."));
 
-  pinMode(CAMERA_PIN_LED, OUTPUT);
-  digitalWrite(CAMERA_PIN_LED, 1);  // 0:turn off LED
-  // pinMode(CAMERA_PIN_FLASH, OUTPUT);
-  // digitalWrite(CAMERA_PIN_LED, 0);  // 0:turn on LED
-  // digitalWrite(CAMERA_PIN_FLASH, 1); // 1:turn on Flash lamp, different from led
-  // delay(200);
-  // digitalWrite(CAMERA_PIN_FLASH, 0);
+  Serial.println(F("[Init]"));
+
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+
+  led_init(CAMERA_PIN_LED); //init status_led 
+  LED_STATUS_DISCONNECTED(); //turn on status_led
+  pinMode(CAMERA_PIN_FLASH, OUTPUT); // init flash lamp
+  digitalWrite(CAMERA_PIN_FLASH, 0); // 0:turn off flash lamp
+
   // start();
 
-  log_i("psram: %d", psramFound());
-  log_i("Total heap: %d", ESP.getHeapSize());
-  log_i("Free heap: %d", ESP.getFreeHeap());
-  log_i("Total PSRAM: %d", ESP.getPsramSize());
-  log_i("Free PSRAM: %d", ESP.getFreePsram());
-  Serial.println(F("[OK]"));
+  // Serial.println(F("[OK]"));
+  info(F("Init...OK"));
+
+  // log_i("psram: %d", psramFound());
+  // log_i("Total heap: %d", ESP.getHeapSize()); 
+  // log_i("Free heap: %d", ESP.getFreeHeap());
+  // log_i("Total PSRAM: %d", ESP.getPsramSize());
+  // log_i("Free PSRAM: %d", ESP.getFreePsram());
 
 }
 
-void loop() {
-  // ws_server connection status led
-  if (millis() - startMillis > 500) {
-    startMillis = millis();
-    if (ws_server.is_connected() == false) {
-      led_status = !led_status;
-      digitalWrite(CAMERA_PIN_LED, led_status); // LED1 blink
+// websocket loop && camera init
+void ws_server_camera_handler() {
+  if (wifi.is_connected) {
+    ws_server.loop();
+    if (!is_camera_started){
+      camera_init();
     }
-    else{
-      digitalWrite(CAMERA_PIN_LED, 0);  // 0:turn on LED
-    }
-  }
+  } 
+} 
 
+void serial_received_handler() {
   // serial receive
   rxBuf = serialRead();
   if (rxBuf.length() > 0) {
@@ -120,82 +160,33 @@ void loop() {
       handleData(out);
     }
   }
+}
 
-  // websocket && camera
-  if (wifi.is_connected) {
-    ws_server.loop();
-    if (!is_camera_started){
-      camera_init();
-    }
-  } 
 
-  // AI mode  
-  if (is_camera_started && (camera_mode == CAMERA_MODE_AI || camera_mode == CAMERA_MODE_BOTH)) {
-    ai_data_handler();
-  }
+void loop() {
+
+  led_status_handler();
+  ws_server_camera_handler();
+  serial_received_handler();
+
 }
 
 void camera_init(){
-  xQueueAIFrame = xQueueCreate(2, sizeof(camera_fb_t *));
+  // Serial.print(F("camera init by mode:"));Serial.println("steam");
+  
   xQueueHttpFrame = xQueueCreate(2, sizeof(camera_fb_t *));
-  xQueueAIData = xQueueCreate(2, sizeof(int) * 4);
-
-  log_i("Free PSRAM: %d", ESP.getFreePsram());
-  Serial.print(F("camera init by mode:"));
-  Serial.println(camera_mode);
-
   pixformat_t pixel_format = PIXFORMAT_JPEG;
-  if (camera_mode == CAMERA_MODE_AI || camera_mode == CAMERA_MODE_BOTH) {
-      if (!psramFound()) {
-        Serial.println(F("PSRAM not found. Please enable PSRAM before using CAMERA_MODE_AI !"));
-        while (1);
-      }else{
-            pixel_format = PIXFORMAT_RGB565;
-      }
-  } else {
-    pixel_format = PIXFORMAT_JPEG;
-  } 
   register_camera(
-      pixel_format, FRAMESIZE, 2, xQueueAIFrame, CAMERA_VERTICAL_FLIP, CAMERA_HORIZONTAL_FLIP,
+      pixel_format, FRAMESIZE, 1, xQueueHttpFrame, CAMERA_VERTICAL_FLIP, CAMERA_HORIZONTAL_FLIP,
       CAMERA_PIN_Y2, CAMERA_PIN_Y3, CAMERA_PIN_Y4, CAMERA_PIN_Y5, CAMERA_PIN_Y6,
       CAMERA_PIN_Y7, CAMERA_PIN_Y8, CAMERA_PIN_Y9, CAMERA_PIN_XCLK,
       CAMERA_PIN_PCLK, CAMERA_PIN_VSYNC, CAMERA_PIN_HREF, CAMERA_PIN_SIOD,
       CAMERA_PIN_SIOC, CAMERA_PIN_PWDN, CAMERA_PIN_RESET);
-  switch (camera_mode) {
-    case CAMERA_MODE_AI:
-      // register_color_detection(xQueueAIFrame, NULL, NULL, NULL, true);
-      register_human_face_detection(xQueueAIFrame, NULL, xQueueAIData, NULL, true);
-      break;
-    case CAMERA_MODE_STREAM:
-      register_httpd(xQueueAIFrame, NULL, true);
-      break;
-    case CAMERA_MODE_BOTH:
-      // register_color_detection(xQueueAIFrame, NULL, NULL, xQueueHttpFrame, true);
-      register_human_face_detection(xQueueAIFrame, NULL, xQueueAIData, xQueueHttpFrame, true);
-      register_httpd(xQueueHttpFrame, NULL, true);
-      break;
-    default:
-      error("Unknown camera mode: " + String(camera_mode));
-      while (1);
-      break;
-  }
-  log_i("Free PSRAM after init: %d", ESP.getFreePsram());
-
+  register_httpd(xQueueHttpFrame, NULL, true);
   is_camera_started = true;
-}
 
-void ai_data_handler() {
-  uint8_t data[4];
-  if (xQueueReceive(xQueueAIData, &data, 0)) {
-    Serial.print("AI+[");
-    for (int i = 0; i < 4; i++) {
-      Serial.print(data[i]);
-      if (i != 3) {
-        Serial.print(", ");
-      }
-    }
-    Serial.println("]");
-  }
+  info("camera stream start on: ", videoUrl);
+  // log_i("Free PSRAM: %d", ESP.getFreePsram());
 }
 
 String serialRead() {
@@ -236,7 +227,7 @@ void handleSet(String cmd){
     Serial.println("[OK]");
   } else if (cmd.substring(0, 4) == "PORT"){
     port = cmd.substring(4).toInt();
-    debug("Set port: ", port);
+    debug("Set port: ", String(port));
     Serial.println("[OK]");
   } else if (cmd.substring(0, 4) == "MODE"){
     mode = cmd.substring(4).toInt();
@@ -248,14 +239,6 @@ void handleSet(String cmd){
     ESP.restart();
   } else if (cmd.substring(0, 5) == "START"){
     start();
-  } else if (cmd.substring(0, 11) == "CAMERA_MODE") {
-    if (is_camera_started) {
-      error("Camera is already started");
-    } else {
-      camera_mode = cmd.substring(11).toInt();
-      debug("Set camera mode: ", CAMERA_MODES[camera_mode]);
-      Serial.println("[OK]");
-    }
   } else {
     error("Unknown command");
   }
@@ -366,49 +349,9 @@ void setStrOf(char* str, uint8_t index, String value) {
   strcpy(str, strValue.c_str());
 }
 
-void debug(String msg){
-  #ifdef DEBUG
-  msg = "[DEBUG] " + msg;
-  Serial.println(msg);
-  #endif
-}
-
-void debug(String msg, int data){
-  msg = msg + String(data);
-  debug(msg);
-}
-
-void debug(String msg, char* data){
-  msg = msg + String(data);
-  debug(msg);
-}
-
-void debug(String msg, char data){
-  msg = msg + String(data);
-  debug(msg);
-}
-
-void debug(String msg, String data){
-  msg = msg + String(data);
-  debug(msg);
-}
-
-void error(String msg){
-  msg = "[ERROR] " + msg;
-  Serial.println(msg);
-}
-
-void error(String msg, int data){
-  msg = msg + String(data);
-  error(msg);
-}
-
-void error(String msg, String data){
-  msg = msg + String(data);
-  error(msg);
-}
-
 void start() {
+  
+  LED_STATUS_ERROOR();
   if (ssid.length() == 0) {
     error("Please set ssid");
   } else if (password.length() == 0) {
@@ -421,9 +364,12 @@ void start() {
     bool result = wifi.connect(mode, ssid, password);
     if (!result) {
       error("TIMEOUT");
+      LED_STATUS_ERROOR();
     } else {
+      LED_STATUS_DISCONNECTED();
       if (ws_server_available == false) {
-        ws_server.begin(port);
+        // ws_server.begin(port);
+        ws_server.begin(port, name, type, CHECK_TEXT);
         ws_server_available = true;
         debug("Websocket on!");
       } else {
@@ -431,7 +377,68 @@ void start() {
       } 
       Serial.print("[OK] ");Serial.println(wifi.ip);
       videoUrl = String("http://") + wifi.ip + ":9000/mjpg";
+      
       clearSendBuffer();
     }
   }
 }
+
+
+void debug(String msg) {
+  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_DEBUG) 
+    Serial.print(F("[CAM_D] "));
+    Serial.println(msg);
+  #endif
+}
+
+void info(String msg) {
+  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_INFO) 
+    Serial.print(F("[CAM_I] "));
+    Serial.println(msg);
+  #endif
+}
+
+void error(String msg) {
+  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_ERROR) 
+    Serial.print(F("[CAM_E] "));
+    Serial.println(msg);
+  #endif
+}
+
+void debug(String msg, String data) {
+  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_DEBUG) 
+    Serial.print(F("[CAM_D] "));
+    Serial.print(msg);
+    Serial.println(data);
+  #endif
+}
+
+void info(String msg, String data) {
+  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_INFO) 
+    Serial.print(F("[CAM_I] "));
+    Serial.print(msg);
+    Serial.println(data);
+  #endif
+}
+
+void error(String msg, String data) {
+  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_ERROR) 
+    Serial.print(F("[CAM_E] "));
+    Serial.print(msg);
+    Serial.println(data);
+  #endif
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
