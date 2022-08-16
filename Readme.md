@@ -4,17 +4,17 @@ This is a firmware read convert uart command and create a websocket server. It's
 
 ## Flash Setting
 
-Board: "ESP32 Dev Module"
-Upload Speed: "460800" - 可以尝试最快速度，可以下载更快，但有些烧录器不支持
-CPU Frequency: "240MHz (WiFi/BT)"
-Flash Frequency: "80MHz"
-Flash Mode: "QIO"
-Flash Size: "4MB (32Mb)"
-Partition Scheme: "Huge APP (3MB No OTA/1MB SPIFFS)" - 代码太大，必须选这个
-Core Debug Level: "None"
-PSRAM: "Enabled" - 要打开PSRAM，否则程序运行会错误
-Arduino Runs On: "Core 1"
-Events Run On: "Core 1"
+    Board: "ESP32 Dev Module"
+    Upload Speed: "460800" - 可以尝试最快速度，可以下载更快，但有些烧录器不支持
+    CPU Frequency: "240MHz (WiFi/BT)"
+    Flash Frequency: "80MHz"
+    Flash Mode: "QIO"
+    Flash Size: "4MB (32Mb)"
+    Partition Scheme: "Huge APP (3MB No OTA/1MB SPIFFS)" - 代码太大，必须选这个
+    Core Debug Level: "None"
+    PSRAM: "Enabled" - 要打开PSRAM，否则程序运行会错误
+    Arduino Runs On: "Core 1"
+    Events Run On: "Core 1"
 
 ## Commands
 
