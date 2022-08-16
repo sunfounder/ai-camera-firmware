@@ -11,10 +11,10 @@ class WS_Server {
   public:
     WS_Server();
     void begin(int port);
+    void begin(int port, String name, String type, String check);
     void loop();
     void send(String data);
     bool is_connected();
-
   private:
     int port;
 };

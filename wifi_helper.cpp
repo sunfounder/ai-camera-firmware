@@ -50,6 +50,8 @@ bool WiFiHelper::connect_AP(){
 bool WiFiHelper::connect(int mode, String _ssid, String _password){
   bool ret;
   ssid = _ssid;
+  password = _password;
+
 
   #ifdef DEBUG
   Serial.print("[DEBUG] Mode:");

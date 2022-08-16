@@ -1,10 +1,15 @@
 #include "ws_server.h"
 #include <ArduinoJson.h>
+#include "led_status.hpp"
 
 WebSocketsServer ws = WebSocketsServer(8765);
 uint8_t client_num = 0;
 bool ws_connected = false;
 // #define DEBUG
+String ws_name = "";
+String ws_type = "";
+String ws_check= "SC";
+extern String videoUrl;
 
 WS_Server::WS_Server() {}
 
@@ -25,6 +30,7 @@ static void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_
   switch(type) {
     // Client has disconnected
     case WStype_DISCONNECTED:{
+      LED_STATUS_DISCONNECTED();
       #ifdef DEBUG
       Serial.println("[DEBUG] [WS] Disconnected!");
       #endif
@@ -35,12 +41,23 @@ static void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_
     }
     // New client has connected
     case WStype_CONNECTED:{
+      LED_STATUS_CONNECTED();
       IPAddress remoteIp = ws.remoteIP(client_num);
       #ifdef DEBUG
       Serial.print("[DEBUG] [WS] Connection from ");
       Serial.println(remoteIp.toString());
       #endif
       Serial.print("[CONNECTED] ");Serial.println(remoteIp.toString());
+      // Send check_info  to client
+      String check_info = "{\"Name\":\"" + ws_name
+                        + "\",\"Type\":\"" + ws_type
+                        + "\",\"Check\":\"" + ws_check
+                        + "\",\"video\":\"" + videoUrl
+                        + "\"}";
+      ws.sendTXT(client_num, check_info);
+      delay(100);
+      ws.sendTXT(client_num, check_info);
+
       // out = serialReadBlock();
       // ws.sendTXT(client_num, out);
       ws_connected = true;
@@ -90,6 +107,7 @@ static void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_
       break;
     }
     case WStype_ERROR: {
+      LED_STATUS_ERROOR();
       #ifdef DEBUG
       Serial.println("[DEBUG] [WS] WStype_ERROR");
       #endif
@@ -140,7 +158,11 @@ static void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_
   }
 }
 
-void WS_Server::begin(int port) {
+
+void WS_Server::begin(int port, String _name, String _type, String _check) {
+  ws_name = _name;
+  ws_type = _type;
+  ws_check= _check;
   ws = WebSocketsServer(port);
   ws.begin();
   ws.onEvent(onWebSocketEvent);
