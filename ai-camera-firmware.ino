@@ -39,9 +39,13 @@
 /*
   Set Wifi mode, SSID and password
 */
-int mode = STA;  // STA or AP
-String ssid = "xxxxxxxx";
-String password = "xxxxxxxx";
+int mode = AP;  // STA or AP
+String ssid = "aiCAM";
+String password = "12345678";
+
+// int mode = STA;  // STA or AP
+// String ssid = "xxxxxx";
+// String password = "xxxxxxxx";
 
 /*
   Set websockets port
