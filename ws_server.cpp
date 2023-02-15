@@ -11,6 +11,10 @@ String ws_type = "";
 String ws_check= "SC";
 extern String videoUrl;
 
+bool isPingPingOK = true;
+uint32_t lastPingPong = 0;
+hw_timer_t * pingPongTimer = NULL;
+
 WS_Server::WS_Server() {}
 
 String intToString(uint8_t * value, size_t length) {
@@ -68,35 +72,44 @@ static void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_
       // Serial.printf("[DEBUG] [%u] Received text: ", client_num);
       // #endif
       out = intToString(payload, length);
-      // #ifdef DEBUG
-      // Serial.print("[DEBUG] [WS] Received text: ");Serial.println(out);
-      // #endif
-      DynamicJsonDocument recvBuffer(WS_BUFFER_SIZE);
-      deserializeJson(recvBuffer, out);
-      String result = "WS+";
-      for (int i=0; i<REGIONS_LENGTH; i++){
-        String region = String(REGIONS[i]);
-        String value;
-        if (recvBuffer[region].is<JsonArray>()) {
-          for (int j=0; j<recvBuffer[region].size(); j++) {
-            value += recvBuffer[region][j].as<String>();
-            if (j != recvBuffer[region].size()-1) value += ',';
+      if (strcmp(out.c_str(), "ping") == 0) {
+        lastPingPong = millis();
+        ws.sendTXT(client_num, "pong");
+          isPingPingOK = true;
+        #ifdef DEBUG
+        Serial.println("[DEBUG] [WS] PIN PONG");
+        #endif
+      } else {
+        // #ifdef DEBUG
+        // Serial.print("[DEBUG] [WS] Received text: ");Serial.println(out);
+        // #endif
+        DynamicJsonDocument recvBuffer(WS_BUFFER_SIZE);
+        deserializeJson(recvBuffer, out);
+        String result = "WS+";
+        for (int i=0; i<REGIONS_LENGTH; i++){
+          String region = String(REGIONS[i]);
+          String value;
+          if (recvBuffer[region].is<JsonArray>()) {
+            for (int j=0; j<recvBuffer[region].size(); j++) {
+              value += recvBuffer[region][j].as<String>();
+              if (j != recvBuffer[region].size()-1) value += ',';
+            }
+          } else {
+            value = recvBuffer[region].as<String>();
           }
-        } else {
-          value = recvBuffer[region].as<String>();
+          // #ifdef DEBUG
+          // Serial.print(region);Serial.print(": ");Serial.println(value);
+          // #endif
+          if (value == "true") value = "1";
+          else if (value == "false") value = "0";
+          if (value != "null") result += value;
+          if (i != REGIONS_LENGTH - 1) result += ';';
         }
         // #ifdef DEBUG
-        // Serial.print(region);Serial.print(": ");Serial.println(value);
+        // Serial.print("[DEBUG] [WS] Send over serial: ");
         // #endif
-        if (value == "true") value = "1";
-        else if (value == "false") value = "0";
-        if (value != "null") result += value;
-        if (i != REGIONS_LENGTH - 1) result += ';';
+        Serial.println(result);
       }
-      // #ifdef DEBUG
-      // Serial.print("[DEBUG] [WS] Send over serial: ");
-      // #endif
-      Serial.println(result);
       break;
     }
     // For everything else: do nothing
@@ -158,6 +171,18 @@ static void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_
   }
 }
 
+void ARDUINO_ISR_ATTR checkPingPong(){
+  if (ws_connected == false) {
+    return;
+  }
+  if (millis() - lastPingPong > TIMEOUT) {
+    isPingPingOK = false;
+    #ifdef DEBUG
+    Serial.println("[DEBUG] [WS] PingPong timeout");
+    #endif
+    Serial.print("[DISCONNECTED] timeout");
+  }
+}
 
 void WS_Server::begin(int port, String _name, String _type, String _check) {
   ws_name = _name;
@@ -166,6 +191,8 @@ void WS_Server::begin(int port, String _name, String _type, String _check) {
   ws = WebSocketsServer(port);
   ws.begin();
   ws.onEvent(onWebSocketEvent);
+  pingPongTimer = timerBegin(0, 65535, true); // prescaler 8000, max 65535, 80Mhz / 65535 = 1220.3125Hz = 0.0008192s
+  timerAttachInterrupt(pingPongTimer, &checkPingPong, true);
   #ifdef DEBUG
   Serial.println("[DEBUG] WebSocket server started");
   #endif

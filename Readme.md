@@ -2,6 +2,11 @@
 
 This is a firmware read convert uart command and create a websocket server. It's originally for Arduino or Raspberry Pi Pico to connect to SunFounder Controller. Send command and data over UART in boardrate 115200
 
+## Dependencies
+
+ - WebSockets by Markus Sattler
+ - ArduinoJson
+
 ## Flash Setting
 
     Board: "ESP32 Dev Module"
