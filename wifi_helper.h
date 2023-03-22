@@ -14,10 +14,11 @@ class WiFiHelper {
     String ssid = "";
     String password = "";
     bool is_connected = false;
+    void check_status();
 
   private:
     bool connect_AP(); 
     bool connect_STA();
 };
 
-#endif // __WIFI_HELPER_H__
+#endif

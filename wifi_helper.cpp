@@ -13,30 +13,23 @@ bool WiFiHelper::connect_STA(){
 
   // Connect to wifi
   WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
   WiFi.begin(ssid.c_str(), password.c_str());
 
   // Wait some time to connect to wifi
   int count = 0;
-  #ifdef DEBUG
   Serial.print("[DEBUG] Connecting.");
-  #endif
   while (WiFi.status() != WL_CONNECTED) {
-    #ifdef DEBUG
-    Serial.print(".");
-    #endif
-    Serial.println(WiFi.status());
+    Serial.print("."); 
     delay(500);
     count ++;
     if (count > 30){
-      #ifdef DEBUG
       Serial.println("");
-      #endif
+      Serial.println(WiFi.status());
       return false;
     }
   }
-  #ifdef DEBUG
   Serial.println("");
-  #endif
   ip = WiFi.localIP().toString();
   return true;
 }
@@ -51,7 +44,6 @@ bool WiFiHelper::connect(int mode, String _ssid, String _password){
   bool ret;
   ssid = _ssid;
   password = _password;
-
 
   #ifdef DEBUG
   Serial.print("[DEBUG] Mode:");
@@ -80,3 +72,12 @@ bool WiFiHelper::connect(int mode, String _ssid, String _password){
   return true;
 }
 
+void WiFiHelper::check_status(){
+  if (WiFi.status() != WL_CONNECTED) {
+    if (is_connected == true) {
+      is_connected = false;
+      WiFi.disconnect();
+      Serial.println("[DISCONNECTED] wifi disconnected");
+    }
+  }
+}
