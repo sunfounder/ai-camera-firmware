@@ -62,12 +62,6 @@ void WS_Server::begin(int port, String _name, String _type, String _check) {
 
 void WS_Server::loop() {
   ws.loop();
-}
-
-void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t length) {
-  String out;
-  client_num = cn;
-
   // send pong
   if (ws_connected == true) {
     uint32_t _time = millis();
@@ -81,6 +75,11 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
       // Serial.print("[DEBUG] PONG ");Serial.println(_time);
     }
   }
+}
+
+void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t length) {
+  String out;
+  client_num = cn;
 
   switch(type) {
     // Client has disconnected
