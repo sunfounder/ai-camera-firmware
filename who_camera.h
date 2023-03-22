@@ -6,7 +6,7 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
-#define XCLK_FREQ_HZ 15000000
+#define XCLK_FREQ_HZ 20000000
 
 #ifdef __cplusplus
 extern "C" {

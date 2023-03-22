@@ -63,7 +63,7 @@ void register_camera(const pixformat_t pixel_fromat,
   config.xclk_freq_hz = XCLK_FREQ_HZ;
   config.pixel_format = pixel_fromat;
   config.frame_size = frame_size;
-  config.jpeg_quality = 12;
+  config.jpeg_quality = 10;
   config.fb_count = fb_count;
   config.fb_location = CAMERA_FB_IN_PSRAM;
   config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
