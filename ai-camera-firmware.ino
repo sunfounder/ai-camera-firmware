@@ -4,21 +4,22 @@
   targeted at ESP32-CAM and TTGO_CAMERA.
 
   Development test environment:
-    - Arduino IDE 1.8.19
+    - Arduino IDE 2.0.3
   Board tools:
-    - Arduino AVR Boards 1.8.3
-    - esp32 2.0.3
+    - Arduino AVR Boards 2.0.3
+    - esp32 (by Espressif Systems) 2.0.7
   Libraries:
-    - ArduinoJson
-    - WebSockets
+    - ArduinoJson (by Benoit Blanchon)
+    - WebSockets (by Markus Sattler)
 
-  Version: 1.0.0
+  Version: 1.1.0
     -- https://github.com/sunfounder/ai-camera-firmware
   
   Author: Sunfounder
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
+#define VERSION "1.1.0"
 
 #include "led_status.hpp"
 #include "who_camera.h"
@@ -26,19 +27,16 @@
 #include "ws_server.h"
 #include "wifi_helper.h"
 #include "ArduinoJson.h"
-#include "soc/soc.h"
+#include "soc/soc.h"    // disable brownout detector
 #include "soc/rtc_cntl_reg.h"
 
-/*
-  Select development board
-*/
+/* Select development board */
 #define ESP32_CAM
 // #define TTGO_CAMERA
-#include "pins.h"
+#include "pins.h" // after define development board
 
-/*
-  Set Wifi mode, SSID and password
-*/
+/* ----------------------- Configuration -------------------------------- */
+/* Set Wifi mode, SSID and password */
 int mode = AP;  // STA or AP
 String ssid = "aiCAM";
 String password = "12345678";
@@ -47,22 +45,18 @@ String password = "12345678";
 // String ssid = "xxxxxx";
 // String password = "xxxxxxxx";
 
-/*
-  Set websockets port
+/* Set websockets port 
+  Sunfounder Controller APP fixed using port 8765
 */
-int port = 8765;  // Sunfounder Controller APP fixed using port 8765
+int port = 8765;
 
-/*
-  Set check info for Sunfounder Controller APP
-*/
+/* Set check info for Sunfounder Controller APP */
 String name = "AI Camera";
 String type = "AI_Camera";
-String videoUrl = "";
+extern String videoUrl;
 #define CHECK_TEXT "SC"
 
-/*
-  Set the Debug Level
-*/
+/* Set the Debug Level */
 #define DEBUG_LEVEL CAM_DEBUG_LEVEL_INFO
 #define CAM_DEBUG_LEVEL_OFF 0
 #define CAM_DEBUG_LEVEL_ERROR 1
@@ -70,44 +64,43 @@ String videoUrl = "";
 #define CAM_DEBUG_LEVEL_DEBUG 3
 #define CAM_DEBUG_LEVEL_ALL 4
 
-/*
-  Set the camera resolution
-*/
+/* Set the camera resolution */
 // #define FRAMESIZE FRAMESIZE_QVGA // 320x240
 #define FRAMESIZE FRAMESIZE_VGA // 640x480
 // #define FRAMESIZE FRAMESIZE_SVGA // 800x600
 // #define FRAMESIZE FRAMESIZE_XGA // 1024x768
 // #define FRAMESIZE FRAMESIZE_HD // 1280x720
 
-/*
-  Set the camera flip
-*/
+/* Set size of fb_count */
+#define FB_COUNT 2
+
+/* Set the camera flip */
 #define CAMERA_VERTICAL_FLIP 1
 #define CAMERA_HORIZONTAL_FLIP 1
 
-/*
-  Set the SERIAL_TIMEOUT (ms)
-*/
-#define SERIAL_TIMEOUT 100
+/* Set the SERIAL_TIMEOUT (ms) */
+#define SERIAL_TIMEOUT 100  // timeout 100ms
+#define CHAR_TIMEOUT 5 // char timeout (ms)
 
-
+/* ----------------------- Global Variables -------------------------- */
 String WIFI_MODES[3] = {"None", "STA", "AP"};
+WiFiHelper wifi = WiFiHelper();
+
 DynamicJsonDocument sendBuffer(WS_BUFFER_SIZE);
 WS_Server ws_server = WS_Server();
-WiFiHelper wifi = WiFiHelper();
-bool ws_server_available = false;
-String rxBuf = "";
+
 static QueueHandle_t xQueueHttpFrame = NULL;
 bool is_camera_started = false;
 
-// Functions
+String rxBuf = "";
+
+/* ----------------------- Functions -------------------------------- */
 #define IsStartWith(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
 void camera_init();
 String serialRead();
 void handleSet(String cmd);
 void start();
 void handleData(String data);
-void led_status_handle();
 void debug(String msg);
 void info(String msg);
 void error(String msg);
@@ -115,7 +108,7 @@ void debug(String msg, String data);
 void info(String msg, String data);
 void error(String msg, String data);
 
-
+/*--------------------- setup() & loop() ------------------------------*/
 void setup() {
   Serial.begin(115200);
   Serial.setTimeout(SERIAL_TIMEOUT);
@@ -128,11 +121,8 @@ void setup() {
   LED_STATUS_DISCONNECTED(); //turn on status_led
   pinMode(CAMERA_PIN_FLASH, OUTPUT); // init flash lamp
   digitalWrite(CAMERA_PIN_FLASH, 0); // 0:turn off flash lamp
-
-  // start();
-
-  // Serial.println(F("[OK]"));
-  info(F("Init...OK"));
+  
+  Serial.print(F("[OK] ")); Serial.println(VERSION);
 
   // log_i("psram: %d", psramFound());
   // log_i("Total heap: %d", ESP.getHeapSize()); 
@@ -142,9 +132,19 @@ void setup() {
 
 }
 
-// websocket loop && camera init
+void loop() {
+  led_status_handler();
+  ws_server_camera_handler();
+  serial_received_handler();
+}
+
+/*--------------------- Functions------------------------------*/
+/* websocket loop && camera init */
 void ws_server_camera_handler() {
   if (wifi.is_connected) {
+    if (mode == STA) {
+      wifi.check_status();
+    }
     ws_server.loop();
     if (!is_camera_started){
       camera_init();
@@ -153,11 +153,9 @@ void ws_server_camera_handler() {
 } 
 
 void serial_received_handler() {
-  // serial receive
   rxBuf = serialRead();
   if (rxBuf.length() > 0) {
-    debug("RX Receive: ", rxBuf);
-    // delay(10);
+    debug("RX: ", rxBuf);
     if (rxBuf.substring(0, 4) == "SET+") {
       handleSet(rxBuf.substring(4));
     } else if (rxBuf.substring(0, 3) == "WS+") {
@@ -167,89 +165,115 @@ void serial_received_handler() {
   }
 }
 
-
-void loop() {
-
-  led_status_handler();
-  ws_server_camera_handler();
-  serial_received_handler();
-
+String serialRead() {
+  String buf = "";
+  char inChar;
+  uint32_t char_time = millis();
+  while (Serial.available() || millis() - char_time < CHAR_TIMEOUT) {
+    inChar = (char)Serial.read();
+    if (inChar == '\n') {
+      break;
+    } else if (inChar == '\r') {
+      char_time = millis();
+      continue;
+    } else if ((int)inChar != 255) {
+      buf += inChar;
+      char_time = millis();
+    }
+  }
+  return buf;
 }
 
 void camera_init(){
-  // Serial.print(F("camera init by mode:"));Serial.println("steam");
-  
   xQueueHttpFrame = xQueueCreate(2, sizeof(camera_fb_t *));
   pixformat_t pixel_format = PIXFORMAT_JPEG;
   register_camera(
-      pixel_format, FRAMESIZE, 1, xQueueHttpFrame, CAMERA_VERTICAL_FLIP, CAMERA_HORIZONTAL_FLIP,
+      pixel_format, FRAMESIZE, FB_COUNT, xQueueHttpFrame, CAMERA_VERTICAL_FLIP, CAMERA_HORIZONTAL_FLIP,
       CAMERA_PIN_Y2, CAMERA_PIN_Y3, CAMERA_PIN_Y4, CAMERA_PIN_Y5, CAMERA_PIN_Y6,
       CAMERA_PIN_Y7, CAMERA_PIN_Y8, CAMERA_PIN_Y9, CAMERA_PIN_XCLK,
       CAMERA_PIN_PCLK, CAMERA_PIN_VSYNC, CAMERA_PIN_HREF, CAMERA_PIN_SIOD,
       CAMERA_PIN_SIOC, CAMERA_PIN_PWDN, CAMERA_PIN_RESET);
   register_httpd(xQueueHttpFrame, NULL, true);
   is_camera_started = true;
-
+  log_i("Free PSRAM: %d", ESP.getFreePsram());
   info("camera stream start on: ", videoUrl);
-  // log_i("Free PSRAM: %d", ESP.getFreePsram());
 }
 
-String serialRead() {
-  String buf = "";
-  char inChar;
-  int temp;
-  unsigned long timeoutStart = millis();
-  while (Serial.available() || millis() - timeoutStart < SERIAL_TIMEOUT) {
-    temp = Serial.read();
-    inChar = (char)temp;
-    if (inChar == '\n') {
-      break;
-    } else if (inChar == '\r') {
-      continue;
-    } else if ((int)inChar != 255) {
-      buf += inChar;
-    }
-  }
-  return buf;
-}
-
-void handleSet(String cmd){
-  if (cmd.substring(0, 4) == "NAME"){
-    name = cmd.substring(4);
-    debug("Set NAME: ", name);
-    Serial.println("[OK]");
-  } else if (cmd.substring(0, 4) == "TYPE"){
-    type = cmd.substring(4);
-    debug("Set TYPE: ", type);
-    Serial.println("[OK]");
-  } else if (cmd.substring(0, 4) == "SSID"){
-    ssid = cmd.substring(4);
-    debug("Set SSID: ", ssid);
-    Serial.println("[OK]");
-  } else if (cmd.substring(0, 3) == "PSK"){
+void handleSet(String cmd) {
+  // ------------ 3 characters command  ------------
+  String _3_chars_cmd = cmd.substring(0, 3);
+  // PSK
+  if (_3_chars_cmd == "PSK") {
     password = cmd.substring(3);
     debug("Set password: ", password);
     Serial.println("[OK]");
-  } else if (cmd.substring(0, 4) == "PORT"){
+    return;
+  }
+
+  // ------------ 4 characters command  ------------
+  String _4_chars_cmd = cmd.substring(0, 4);
+  // SSID 
+  if (_4_chars_cmd == "SSID") {
+    ssid = cmd.substring(4);
+    debug("Set SSID: ", ssid);
+    Serial.println("[OK]");
+    return;
+  }
+  // NAME 
+  if (_4_chars_cmd == "NAME"){
+    name = cmd.substring(4);
+    debug("Set NAME: ", name);
+    Serial.println("[OK]");
+    return;
+  } 
+  // TYPE
+  else if (_4_chars_cmd == "TYPE"){
+    type = cmd.substring(4);
+    debug("Set TYPE: ", type);
+    Serial.println("[OK]");
+    return;
+  } 
+  // SSID
+  else if (_4_chars_cmd == "SSID"){
+    ssid = cmd.substring(4);
+    debug("Set SSID: ", ssid);
+    Serial.println("[OK]");
+    return;
+  } 
+  // PORT
+  else if (_4_chars_cmd == "PORT"){
     port = cmd.substring(4).toInt();
     debug("Set port: ", String(port));
     Serial.println("[OK]");
-  } else if (cmd.substring(0, 4) == "MODE"){
+    return;
+  } 
+  // MODE
+  else if (_4_chars_cmd == "MODE"){
     mode = cmd.substring(4).toInt();
     debug("Set mode: ", WIFI_MODES[mode]);
     Serial.println("[OK]");
-  } else if (cmd.substring(0, 5) == "RESET"){
+    return;
+  }
+
+  // ------------ 5 characters command  ------------
+  String _5_chars_cmd = cmd.substring(0, 5);
+  // RESET
+  if (_5_chars_cmd == "RESET") {
     debug("Reset");
     delay(10);
     ESP.restart();
-  } else if (cmd.substring(0, 5) == "START"){
-    start();
-  } else {
-    error("Unknown command");
+    return;
   }
+  // START
+  else if (_5_chars_cmd == "START") {
+    start();
+    return;
+  }
+
+  // ----------- if no retrun before -----------
+  Serial.println("[ERROR] SET+ Unknown command");
 }
 
-// test: WS+3;5;10,30;forward;0;1;4;-100;40.4;50,60;-45.5;backward;50564,33630,333
 void handleData(String data) {
   clearSendBuffer();
   debug("Data: ", data);
@@ -291,10 +315,10 @@ void handleData(String data) {
 
 void clearSendBuffer() {
   sendBuffer.clear();
-  sendBuffer["Name"] = name;
-  sendBuffer["Type"] = type;
-  sendBuffer["Check"] = CHECK_TEXT;
-  sendBuffer["video"] = videoUrl;
+  // sendBuffer["Name"] = name;
+  // sendBuffer["Type"] = type;
+  // sendBuffer["Check"] = CHECK_TEXT;
+  // sendBuffer["video"] = videoUrl;
 }
 
 String getStrOf(String str, uint8_t index, char divider) {
@@ -372,17 +396,11 @@ void start() {
       LED_STATUS_ERROOR();
     } else {
       LED_STATUS_DISCONNECTED();
-      if (ws_server_available == false) {
-        // ws_server.begin(port);
-        ws_server.begin(port, name, type, CHECK_TEXT);
-        ws_server_available = true;
-        debug("Websocket on!");
-      } else {
-        debug("Websocket already on!");
-      } 
+      ws_server.close();
+      ws_server.begin(port, name, type, CHECK_TEXT);
+      debug("Websocket on!");
       Serial.print("[OK] ");Serial.println(wifi.ip);
       videoUrl = String("http://") + wifi.ip + ":9000/mjpg";
-      
       clearSendBuffer();
     }
   }
@@ -433,17 +451,3 @@ void error(String msg, String data) {
     Serial.println(data);
   #endif
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
