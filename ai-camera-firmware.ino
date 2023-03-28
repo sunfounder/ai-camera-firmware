@@ -66,6 +66,7 @@ extern String videoUrl;
 
 /* Set the camera resolution */
 // #define FRAMESIZE FRAMESIZE_QVGA // 320x240
+// #define FRAMESIZE FRAMESIZE_HVGA // 480x320
 #define FRAMESIZE FRAMESIZE_VGA // 640x480
 // #define FRAMESIZE FRAMESIZE_SVGA // 800x600
 // #define FRAMESIZE FRAMESIZE_XGA // 1024x768
@@ -86,7 +87,6 @@ extern String videoUrl;
 String WIFI_MODES[3] = {"None", "STA", "AP"};
 WiFiHelper wifi = WiFiHelper();
 
-DynamicJsonDocument sendBuffer(WS_BUFFER_SIZE);
 WS_Server ws_server = WS_Server();
 
 static QueueHandle_t xQueueHttpFrame = NULL;
@@ -136,7 +136,7 @@ void loop() {
   led_status_handler();
   ws_server_camera_handler();
   serial_received_handler();
-  delay(5);
+  delay(2);
 }
 
 /*--------------------- Functions------------------------------*/
@@ -161,7 +161,7 @@ void serial_received_handler() {
       handleSet(rxBuf.substring(4));
     } else if (rxBuf.substring(0, 3) == "WS+") {
       String out = rxBuf.substring(3);
-      handleData(out);
+      ws_server.send(out);
     }
   }
 }
@@ -186,7 +186,7 @@ String serialRead() {
 }
 
 void camera_init(){
-  xQueueHttpFrame = xQueueCreate(2, sizeof(camera_fb_t *));
+  xQueueHttpFrame = xQueueCreate(2, 2*sizeof(camera_fb_t *));
   pixformat_t pixel_format = PIXFORMAT_JPEG;
   register_camera(
       pixel_format, FRAMESIZE, FB_COUNT, xQueueHttpFrame, CAMERA_VERTICAL_FLIP, CAMERA_HORIZONTAL_FLIP,
@@ -275,53 +275,6 @@ void handleSet(String cmd) {
   Serial.println("[ERROR] SET+ Unknown command");
 }
 
-void handleData(String data) {
-  clearSendBuffer();
-  debug("Data: ", data);
-  for (int i = 0; i < REGIONS_LENGTH; i++) {
-    String str = getStrOf(data, i, ';');
-    String region = String(REGIONS[i]);
-    if (str.indexOf(',') != -1) {
-      JsonArray arr = sendBuffer.createNestedArray(region);
-      uint8_t j =0;
-      while (1) {
-        String value = getStrOf(str, j, ',');
-        if (value.length() == 0) {
-          break;
-        }
-        if (value.indexOf('.') != -1) {
-          arr.add(value.toFloat());
-        } else {
-          arr.add(value.toInt());
-        }
-        j++;
-      }
-    } else if (str.indexOf('.') != -1) {
-      sendBuffer[region] = str.toFloat();
-    } else if (str[0] > '0' && str[0] < '9' || str[0] == '-') {
-      sendBuffer[region] = str.toInt();
-    } else if (str == "true") {
-      sendBuffer[region] = true;
-    } else if (str == "false") {
-      sendBuffer[region] = false;
-    } else {
-      sendBuffer[region] = str;
-    }
-  }
-  char payload[WS_BUFFER_SIZE];
-  serializeJson(sendBuffer, payload);
-  debug("Payload: ", payload);
-  ws_server.send(String(payload));
-}
-
-void clearSendBuffer() {
-  sendBuffer.clear();
-  // sendBuffer["Name"] = name;
-  // sendBuffer["Type"] = type;
-  // sendBuffer["Check"] = CHECK_TEXT;
-  // sendBuffer["video"] = videoUrl;
-}
-
 String getStrOf(String str, uint8_t index, char divider) {
   uint8_t start, end;
   uint8_t length = str.length();
@@ -402,7 +355,6 @@ void start() {
       debug("Websocket on!");
       Serial.print("[OK] ");Serial.println(wifi.ip);
       videoUrl = String("http://") + wifi.ip + ":9000/mjpg";
-      clearSendBuffer();
     }
   }
 }
