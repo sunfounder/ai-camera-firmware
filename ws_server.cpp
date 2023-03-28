@@ -20,6 +20,9 @@ uint32_t lastPingPong = 0;
 uint32_t last_pong_time = 0;
 uint16_t PONG_INTERVAL = 200;
 
+uint32_t last_send_time = 0;
+uint16_t SEND_INTERVAL = 20;
+
 String intToString(uint8_t * value, size_t length) {
   String buf;
   for (int i=0; i<length; i++){
@@ -62,24 +65,25 @@ void WS_Server::begin(int port, String _name, String _type, String _check) {
 
 void WS_Server::loop() {
   ws.loop();
-  // send pong
-  if (ws_connected == true) {
-    uint32_t _time = millis();
-    if (_time - last_pong_time > PONG_INTERVAL) {
-      String msg = "pong "+String(_time);
-      ws.sendTXT(client_num, msg);
-      last_pong_time = millis();
-      #ifdef DEBUG
-      Serial.println("[DEBUG] [WS] send PONG");
-      #endif
-      // Serial.print("[DEBUG] PONG ");Serial.println(_time);
-    }
-  }
 }
 
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t length) {
   String out;
   client_num = cn;
+
+  // send pong
+  // if (ws_connected == true) {
+  uint32_t _time = millis();
+  if (_time - last_pong_time > PONG_INTERVAL) {
+    String msg = "pong "+String(_time);
+    ws.sendTXT(client_num, msg);
+    last_pong_time = millis();
+    #ifdef DEBUG
+    Serial.println("[DEBUG] [WS] send PONG");
+    #endif
+    // Serial.println(msg);
+  }
+  // }
 
   switch(type) {
     // Client has disconnected
@@ -116,6 +120,8 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
     }
     // receive text
     case WStype_TEXT:{
+      ws_connected = true;
+
       out = intToString(payload, length);
 
       // reset ping_pong time
@@ -150,7 +156,10 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
       }
 
       // send
-      Serial.println(result);
+      if (millis() - last_send_time > SEND_INTERVAL ) {
+        Serial.println(result);
+        last_send_time = millis();
+      }
       break;
     }
     // For everything else: do nothing
