@@ -7,8 +7,8 @@
 #include "freertos/task.h"
 
 // #define XCLK_FREQ_HZ 20000000
-#define XCLK_FREQ_HZ 15000000
-// #define XCLK_FREQ_HZ 12000000
+// #define XCLK_FREQ_HZ 15000000
+#define XCLK_FREQ_HZ 12000000 // The test found that the lower the frequency, the faster the frame rate
 
 
 #ifdef __cplusplus
