@@ -10,6 +10,9 @@
 // #define XCLK_FREQ_HZ 15000000
 #define XCLK_FREQ_HZ 12000000 // The test found that the lower the frequency, the faster the frame rate
 
+// #define JPEG_QUALITY 4 // The lower the value, the higher the quality
+#define JPEG_QUALITY 10
+// #define JPEG_QUALITY 12
 
 #ifdef __cplusplus
 extern "C" {
