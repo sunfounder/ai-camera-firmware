@@ -136,7 +136,7 @@ void loop() {
   led_status_handler();
   ws_server_camera_handler();
   serial_received_handler();
-  delay(2);
+  delay(6);
 }
 
 /*--------------------- Functions------------------------------*/
