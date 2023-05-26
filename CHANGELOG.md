@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.1.2] - 2023-3-29: (4b87f47)
+## [1.1.0] - 2023-3-29
 
 ### Optimized
 - Optimize webcam frame rate
