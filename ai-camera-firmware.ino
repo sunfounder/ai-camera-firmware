@@ -12,14 +12,14 @@
     - ArduinoJson (by Benoit Blanchon)
     - WebSockets (by Markus Sattler)
 
-  Version: 1.1.0
+  Version: 1.2.0
     -- https://github.com/sunfounder/ai-camera-firmware
   
   Author: Sunfounder
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.1.0"
+#define VERSION "1.2.0"
 
 #include "led_status.hpp"
 #include "who_camera.h"
@@ -29,6 +29,8 @@
 #include "ArduinoJson.h"
 #include "soc/soc.h"    // disable brownout detector
 #include "soc/rtc_cntl_reg.h"
+#include "esp32/rom/rtc.h" // rst reason 
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/ResetReason/ResetReason.ino
 
 /* Select development board */
 #define ESP32_CAM
@@ -122,7 +124,13 @@ void setup() {
   pinMode(CAMERA_PIN_FLASH, OUTPUT); // init flash lamp
   digitalWrite(CAMERA_PIN_FLASH, 0); // 0:turn off flash lamp
   
-  Serial.print(F("[OK] ")); Serial.println(VERSION);
+  int reason = rtc_get_reset_reason(0); // cpu0
+  if (reason != 12) { // 12, SW_CPU_RESET,  Software reset CPU
+    Serial.println(VERSION);
+  } else {
+    Serial.print(F("[OK] ")); // send [OK] when Software Reset
+    Serial.println(VERSION); 
+  }
 
   // log_i("psram: %d", psramFound());
   // log_i("Total heap: %d", ESP.getHeapSize()); 
