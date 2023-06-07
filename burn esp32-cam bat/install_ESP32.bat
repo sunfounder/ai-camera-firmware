@@ -1,14 +1,12 @@
 @REM esptool.exe -help
 
 set boot_app0="boot_app0.bin"
-set bootloader="ai-camera-firmware_v1.1.0_bootloader.bin"
-set partitions="ai-camera-firmware_v1.1.0_partitions.bin"
-set app="ai-camera-firmware_v1.1.0.bin"
+set bootloader="ai-camera-firmware_v1.2.0_bootloader.bin"
+set partitions="ai-camera-firmware_v1.2.0_partitions.bin"
+set app="ai-camera-firmware_v1.2.0.bin"
 
-set app="ai-camera-firmware_v1.1.0.bin"
-set merge_app="ai-camera-firmware_v1.1.0_merged.bin"
-
-
+set app="ai-camera-firmware_v1.2.0.bin"
+set merge_app="ai-camera-firmware_v1.2.0_merged.bin"
 
 @REM esptool.exe --chip esp32 --before no_reset_no_sync erase_flash
 @REM esptool.exe --chip esp32 --before no_reset_no_sync write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB 0x1000 %bootloader% 0x8000 %partitions% 0xe000 %boot_app0% 0x10000 %firmware% 
