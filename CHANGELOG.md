@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.2.0] - 2023-6-7
+
+### Optimized
+- Only send [OK] when the boot reason is software reset
+
+
 ## [1.1.0] - 2023-3-29
 
 ### Optimized
