@@ -1,4 +1,10 @@
 # Change Log
+## [1.3.0] - 2023-8-31
+
+### Added
+- Add flash lamp control
+- Add BIN data comunication
+
 
 ## [1.2.0] - 2023-6-7
 
