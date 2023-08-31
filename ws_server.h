@@ -19,6 +19,7 @@ class WS_Server {
     void close();
     void loop();
     void send(String data);
+    void sendBIN(uint8_t* payload, size_t length);
     bool is_connected();
   private:
     int port;

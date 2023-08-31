@@ -164,6 +164,8 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
     }
     // For everything else: do nothing
     case WStype_BIN: {
+      Serial.print("WSB+");
+      Serial.write(payload, length); Serial.println();
       #ifdef DEBUG
       Serial.println("[DEBUG] [WS] WStype_BIN");
       #endif
@@ -224,6 +226,13 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
 void WS_Server::send(String data) {
   ws.sendTXT(client_num, data);
 }
+
+// https://github.com/Links2004/arduinoWebSockets/blob/master/src/WebSocketsServer.cpp#L230
+void WS_Server::sendBIN(uint8_t* payload, size_t length) {
+  // bool WebSocketsServerCore::sendBIN(uint8_t num, const uint8_t * payload, size_t length)
+  ws.sendBIN(client_num, payload, length);
+}
+
 
 bool WS_Server::is_connected() {
   return ws_connected;
