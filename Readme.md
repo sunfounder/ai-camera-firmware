@@ -139,8 +139,8 @@ SET+PSKsunfounder
 SET+MODE1
 SET+PORT8765
 SET+START
+
+SET+LAMP0
+SET+LAMP5
+SET+LAMP10
 ```
-
-## Changelog
-
-- v1.0.1 2021-12-23: tide code, add timeout for serial read
