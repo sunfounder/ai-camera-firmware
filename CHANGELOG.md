@@ -1,4 +1,10 @@
 # Change Log
+## [1.3.1] - 2023-9-28
+
+### Added
+- Add flash lamp control via WS with L slider widget [Documentation on mischianti.org](https://mischianti.org/2023/09/27/zeus-smart-car-kit-light-and-wifi-signal-boost-to-explore-the-dark/)
+
+# Change Log
 ## [1.3.0] - 2023-8-31
 
 ### Added

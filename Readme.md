@@ -144,3 +144,6 @@ SET+LAMP0
 SET+LAMP5
 SET+LAMP10
 ```
+
+Special usage of WebSocket position 11 (L widget on SunFounder Control) to manage ESP32-CAM integrated Flashlight.
+by Renzo Mischianti <www.mischianti.org>

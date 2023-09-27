@@ -12,14 +12,20 @@
     - ArduinoJson (by Benoit Blanchon)
     - WebSockets (by Markus Sattler) (Links2004)
 
-  Version: 1.3.0
+  Version: 1.3.1
     -- https://github.com/sunfounder/ai-camera-firmware
   
   Author: Sunfounder
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
+
+  Minor light mod
+	  Author: Renzo Mischianti
+	  Website: https://www.mischianti.org
+
  *******************************************************************/
-#define VERSION "1.3.0"
+
+#define VERSION "1.3.1"
 
 #include "led_status.hpp"
 #include "who_camera.h"
