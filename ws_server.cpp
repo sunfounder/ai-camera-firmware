@@ -2,6 +2,10 @@
 #include <ArduinoJson.h>
 #include "led_status.hpp"
 #include "Ticker.h"
+#include "pins.h"
+
+#define BRIGHTNESS_MULTIPLIER 0.5
+#define CAMERA_PIN_FLASH 4
 
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t* payload, size_t length);
 
@@ -66,6 +70,8 @@ void WS_Server::begin(int port, String _name, String _type, String _check) {
 void WS_Server::loop() {
   ws.loop();
 }
+
+int ledPrecValue = 0;
 
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t length) {
   String out;
@@ -153,6 +159,15 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
         else if (value == "false") value = "0";
         if (value != "null") result += value;
         if (i != REGIONS_LENGTH - 1) result += ';';
+
+        if (i==11 && value != "null" && value != "" && ledPrecValue != value.toInt()) {
+//        	Serial.print(i);Serial.print(" - ");
+//			Serial.println(value);
+
+        	ledPrecValue = value.toInt();
+        	analogWrite(CAMERA_PIN_FLASH, (int)ledPrecValue*BRIGHTNESS_MULTIPLIER);
+		}
+
       }
 
       // send

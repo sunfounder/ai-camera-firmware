@@ -9,7 +9,7 @@ This is a firmware read convert uart command and create a websocket server. It's
 
 ## Flash Setting
 - Pay attention to enable PSRAM, select "Huge APP" Partition Scheme
-
+```
     Board: "ESP32 Dev Module"
     Upload Speed: "921600"
     CPU Frequency: "240MHz (WiFi/BT)"
@@ -21,7 +21,7 @@ This is a firmware read convert uart command and create a websocket server. It's
     PSRAM: "Enabled"
     Arduino Runs On: "Core 1"
     Events Run On: "Core 1"
-
+```
 ## Commands
 
 `SET+SSID<ssid>`: set Wi-Fi SSID
@@ -145,3 +145,6 @@ SET+LAMP0
 SET+LAMP5
 SET+LAMP10
 ```
+
+Special usage of WebSocket position 11 (L widget on SunFounder Control) to manage ESP32-CAM integrated Flashlight.
+by Renzo Mischianti <www.mischianti.org>
