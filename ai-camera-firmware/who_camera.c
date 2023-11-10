@@ -55,8 +55,8 @@ void register_camera(const pixformat_t pixel_fromat,
   config.pin_pclk = pclk;
   config.pin_vsync = vsync;
   config.pin_href = href;
-  config.pin_sscb_sda = sda;
-  config.pin_sscb_scl = scl;
+  config.pin_sscb_sdapin_sscb_sda = sda;
+  config.pin_sccb_scl = scl;
   config.pin_pwdn = pwdn;
   config.pin_reset = reset;
 
