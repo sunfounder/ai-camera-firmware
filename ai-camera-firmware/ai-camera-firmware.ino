@@ -30,7 +30,7 @@
 #include "soc/soc.h"    // disable brownout detector
 #include "soc/rtc_cntl_reg.h"
 #include "esp32/rom/rtc.h" // rst reason 
-// #include <Preferences.h> // Save configs
+#include <Preferences.h> // Save configs
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/ResetReason/ResetReason.ino
 
 /* Select development board */
@@ -52,7 +52,7 @@ extern String videoUrl;
 #define CHECK_TEXT "SC"
 
 /* Set the Debug Level */
-#define DEBUG_LEVEL CAM_DEBUG_LEVEL_INFO
+#define DEBUG_LEVEL CAM_DEBUG_LEVEL_DEBUG
 #define CAM_DEBUG_LEVEL_OFF 0
 #define CAM_DEBUG_LEVEL_ERROR 1
 #define CAM_DEBUG_LEVEL_INFO 2
@@ -80,7 +80,7 @@ extern String videoUrl;
 
 /* ----------------------- Global Variables -------------------------- */
 WiFiHelper wifi = WiFiHelper();
-// Preferences prefs;
+Preferences prefs;
 
 WS_Server ws_server = WS_Server();
 
@@ -106,15 +106,13 @@ void error(String msg, String data);
 
 /*--------------------- setup() & loop() ------------------------------*/
 void setup() {
-  Serial.println(F("1"));
-  Serial.begin(115200);
   Serial.println(F("2"));
   Serial.setTimeout(SERIAL_TIMEOUT);
   Serial.println(F("3"));
 
   Serial.println(F("[Init]"));
-  // prefs.begin("config");
-  // read_config();
+  prefs.begin("config");
+  read_config();
 
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
@@ -245,14 +243,14 @@ String serialRead() {
   return buf;
 }
 
-// void read_config() {
-//   name = prefs.getString("name", "AI Camera");
-//   type = prefs.getString("type", "AI Camera");
-//   apSsid = prefs.getString("ap_ssid", "AI Camera");
-//   apPassword = prefs.getString("ap_password", "12345678");
-//   staSsid = prefs.getString("sta_ssid", "");
-//   staPassword = prefs.getString("sta_password", "");
-// }
+void read_config() {
+  name = prefs.getString("name", "AI Camera");
+  type = prefs.getString("type", "AI Camera");
+  apSsid = prefs.getString("ap_ssid", "AI Camera");
+  apPassword = prefs.getString("ap_password", "12345678");
+  staSsid = prefs.getString("sta_ssid", "");
+  staPassword = prefs.getString("sta_password", "");
+}
   
 void camera_init(){
   xQueueHttpFrame = xQueueCreate(2, 2*sizeof(camera_fb_t *));
@@ -276,7 +274,7 @@ void handleSet(String cmd) {
   if (_3_chars_cmd == "PSK") {
     apPassword = cmd.substring(3);
     debug("Set AP password: ", apPassword);
-    // prefs.putString("ap_password", apPassword);
+    prefs.putString("ap_password", apPassword);
     Serial.println("[OK] PSK is deprecating, use APPSK or STAPSK");
     return;
   }
@@ -287,7 +285,7 @@ void handleSet(String cmd) {
   if (_4_chars_cmd == "NAME"){
     name = cmd.substring(4);
     debug("Set NAME: ", name);
-    // prefs.putString("name", name);
+    prefs.putString("name", name);
     Serial.println("[OK]");
     return;
   } 
@@ -295,7 +293,7 @@ void handleSet(String cmd) {
   else if (_4_chars_cmd == "TYPE"){
     type = cmd.substring(4);
     debug("Set TYPE: ", type);
-    // prefs.putString("type", type);
+    prefs.putString("type", type);
     Serial.println("[OK]");
     return;
   } 
@@ -303,7 +301,7 @@ void handleSet(String cmd) {
   else if (_4_chars_cmd == "SSID"){
     apSsid = cmd.substring(4);
     debug("Set AP SSID: ", apSsid);
-    // prefs.putString("ap_ssid", apSsid);
+    prefs.putString("ap_ssid", apSsid);
     Serial.println("[OK] SSID is deprecating, use APSSID or STASSID");
     return;
   } 
@@ -346,7 +344,7 @@ void handleSet(String cmd) {
   // AP PSK
   else if (_5_chars_cmd == "APPSK") {
     apPassword = cmd.substring(5);
-    // prefs.putString("ap_password", apPassword);
+    prefs.putString("ap_password", apPassword);
     debug("Set AP password: ", apPassword);
     Serial.println("[OK]");
     return;
@@ -358,7 +356,7 @@ void handleSet(String cmd) {
   if (_6_chars_cmd == "APSSID") {
     apSsid = cmd.substring(6);
     debug("Set AP ssid: ", apSsid);
-    // prefs.putString("ap_ssid", apSsid);
+    prefs.putString("ap_ssid", apSsid);
     Serial.println("[OK]");
     return;
   }
@@ -366,7 +364,7 @@ void handleSet(String cmd) {
   else if (_6_chars_cmd == "STAPSK") {
     staPassword = cmd.substring(6);
     debug("Set STA password: ", staPassword);
-    // prefs.putString("sta_password", staPassword);
+    prefs.putString("sta_password", staPassword);
     Serial.println("[OK]");
     return;
   }
@@ -377,7 +375,7 @@ void handleSet(String cmd) {
   if (_7_chars_cmd == "STASSID") {
     staSsid = cmd.substring(7);
     debug("Set STA SSID: ", staSsid);
-    // prefs.putString("sta_ssid", staSsid);
+    prefs.putString("sta_ssid", staSsid);
     Serial.println("[OK]");
     return;
   }
