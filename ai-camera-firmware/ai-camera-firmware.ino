@@ -30,6 +30,7 @@
 #include "soc/soc.h"    // disable brownout detector
 #include "soc/rtc_cntl_reg.h"
 #include "esp32/rom/rtc.h" // rst reason 
+// #include <Preferences.h> // Save configs
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/ResetReason/ResetReason.ino
 
 /* Select development board */
@@ -37,23 +38,16 @@
 #include "pins.h" // after define development board
 
 /* ----------------------- Configuration -------------------------------- */
-/* Set Wifi mode, SSID and password */
-int mode = AP;  // STA or AP
-String apSsid = "aiCAM";
-String apPassword = "12345678";
-
-// int mode = STA;  // STA or AP
-// String staSsid = "xxxxxx";
-// String staPassword = "xxxxxxxx";
-
-/* Set websockets port 
-  Sunfounder Controller APP fixed using port 8765
-*/
 int port = 8765;
 
+String name;
+String type;
+String apSsid;
+String apPassword;
+String staSsid;
+String staPassword;
+
 /* Set check info for Sunfounder Controller APP */
-String name = "AI Camera";
-String type = "AI_Camera";
 extern String videoUrl;
 #define CHECK_TEXT "SC"
 
@@ -85,8 +79,8 @@ extern String videoUrl;
 #define CHAR_TIMEOUT 5 // char timeout (ms)
 
 /* ----------------------- Global Variables -------------------------- */
-String WIFI_MODES[3] = {"None", "STA", "AP"};
 WiFiHelper wifi = WiFiHelper();
+// Preferences prefs;
 
 WS_Server ws_server = WS_Server();
 
@@ -99,6 +93,7 @@ String rxBuf = "";
 #define IsStartWith(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
 void camera_init();
 String serialRead();
+void read_config();
 void handleSet(String cmd);
 void start();
 void handleData(String data);
@@ -111,10 +106,15 @@ void error(String msg, String data);
 
 /*--------------------- setup() & loop() ------------------------------*/
 void setup() {
+  Serial.println(F("1"));
   Serial.begin(115200);
+  Serial.println(F("2"));
   Serial.setTimeout(SERIAL_TIMEOUT);
+  Serial.println(F("3"));
 
   Serial.println(F("[Init]"));
+  // prefs.begin("config");
+  // read_config();
 
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
@@ -149,15 +149,15 @@ void loop() {
 /*--------------------- Functions------------------------------*/
 /* websocket loop && camera init */
 void ws_server_camera_handler() {
-  if (wifi.is_connected) {
-    if (mode == STA) {
-      wifi.check_status();
+  if (wifi.isConnected) {
+    if (wifi.staConnected) {
+      wifi.checkSta();
     }
     ws_server.loop();
     if (!is_camera_started){
       camera_init();
     }
-  } 
+  }
 } 
 
 void serial_received_handler() {
@@ -245,6 +245,15 @@ String serialRead() {
   return buf;
 }
 
+// void read_config() {
+//   name = prefs.getString("name", "AI Camera");
+//   type = prefs.getString("type", "AI Camera");
+//   apSsid = prefs.getString("ap_ssid", "AI Camera");
+//   apPassword = prefs.getString("ap_password", "12345678");
+//   staSsid = prefs.getString("sta_ssid", "");
+//   staPassword = prefs.getString("sta_password", "");
+// }
+  
 void camera_init(){
   xQueueHttpFrame = xQueueCreate(2, 2*sizeof(camera_fb_t *));
   pixformat_t pixel_format = PIXFORMAT_JPEG;
@@ -267,7 +276,8 @@ void handleSet(String cmd) {
   if (_3_chars_cmd == "PSK") {
     apPassword = cmd.substring(3);
     debug("Set AP password: ", apPassword);
-    Serial.println("[OK]");
+    // prefs.putString("ap_password", apPassword);
+    Serial.println("[OK] PSK is deprecating, use APPSK or STAPSK");
     return;
   }
 
@@ -277,6 +287,7 @@ void handleSet(String cmd) {
   if (_4_chars_cmd == "NAME"){
     name = cmd.substring(4);
     debug("Set NAME: ", name);
+    // prefs.putString("name", name);
     Serial.println("[OK]");
     return;
   } 
@@ -284,6 +295,7 @@ void handleSet(String cmd) {
   else if (_4_chars_cmd == "TYPE"){
     type = cmd.substring(4);
     debug("Set TYPE: ", type);
+    // prefs.putString("type", type);
     Serial.println("[OK]");
     return;
   } 
@@ -291,7 +303,8 @@ void handleSet(String cmd) {
   else if (_4_chars_cmd == "SSID"){
     apSsid = cmd.substring(4);
     debug("Set AP SSID: ", apSsid);
-    Serial.println("[OK]");
+    // prefs.putString("ap_ssid", apSsid);
+    Serial.println("[OK] SSID is deprecating, use APSSID or STASSID");
     return;
   } 
   // PORT
@@ -303,9 +316,7 @@ void handleSet(String cmd) {
   } 
   // MODE
   else if (_4_chars_cmd == "MODE"){
-    mode = cmd.substring(4).toInt();
-    debug("Set mode: ", WIFI_MODES[mode]);
-    Serial.println("[OK]");
+    Serial.println("[OK] MODE is deprecated");
     return;
   }
   // LAMP
@@ -335,21 +346,53 @@ void handleSet(String cmd) {
   // AP PSK
   else if (_5_chars_cmd == "APPSK") {
     apPassword = cmd.substring(5);
+    // prefs.putString("ap_password", apPassword);
     debug("Set AP password: ", apPassword);
     Serial.println("[OK]");
     return;
   }
-  // ------------ 6 characters command  ------------
-  String _3_chars_cmd = cmd.substring(0, 3);
-  // PSK
 
-  // ------------ 4 characters command  ------------
-  String _4_chars_cmd = cmd.substring(0, 4);
-  // SSID 
-  if (_4_chars_cmd == "SSID") {
-    staSsid = cmd.substring(4);
-    debug("Set SSID: ", staSsid);
+  // ------------ 6 characters command  ------------
+  String _6_chars_cmd = cmd.substring(0, 6);
+  // AP SSID
+  if (_6_chars_cmd == "APSSID") {
+    apSsid = cmd.substring(6);
+    debug("Set AP ssid: ", apSsid);
+    // prefs.putString("ap_ssid", apSsid);
     Serial.println("[OK]");
+    return;
+  }
+  // STA PSK
+  else if (_6_chars_cmd == "STAPSK") {
+    staPassword = cmd.substring(6);
+    debug("Set STA password: ", staPassword);
+    // prefs.putString("sta_password", staPassword);
+    Serial.println("[OK]");
+    return;
+  }
+
+  // ------------ 7 characters command  ------------
+  String _7_chars_cmd = cmd.substring(0, 7);
+  // SSID 
+  if (_7_chars_cmd == "STASSID") {
+    staSsid = cmd.substring(7);
+    debug("Set STA SSID: ", staSsid);
+    // prefs.putString("sta_ssid", staSsid);
+    Serial.println("[OK]");
+    return;
+  }
+  // Reset STA
+  else if (_7_chars_cmd == "RSTSTA") {
+    if (staSsid.length() > 0 && staPassword.length() > 0) {
+      bool result = wifi.connectSta(staSsid, staPassword);
+      if (result) {
+        debug("STA connected");
+        Serial.print("[OK]");Serial.println(wifi.ip);
+      } else {
+        debug("STA connect failed");
+        Serial.println("[ERROR] STA connect failed");
+      }
+    }
     return;
   }
 
@@ -415,32 +458,18 @@ void setStrOf(char* str, uint8_t index, String value) {
 }
 
 void start() {
-  
-  LED_STATUS_ERROOR();
-  if (apSsid.length() == 0) {
-    error("Please set AP ssid");
-  } else if (apPassword.length() == 0) {
-    error("Please set AP password");
-  } else if (mode == NONE) {
-    error("Please set mode");
-  } else if (port == 0) {
-    error("Please set port");
-  } else{
-    bool result = wifi.connect(mode, staSsid, password);
-    if (!result) {
-      error("TIMEOUT");
-      LED_STATUS_ERROOR();
-    } else {
-      LED_STATUS_DISCONNECTED();
-      ws_server.close();
-      ws_server.begin(port, name, type, CHECK_TEXT);
-      debug("Websocket on!");
-      Serial.print("[OK] ");Serial.println(wifi.ip);
-      videoUrl = String("http://") + wifi.ip + ":9000/mjpg";
-    }
+  LED_STATUS_ERROR();
+  wifi.connectAp(apSsid, apPassword);
+  if (staSsid.length() > 0 && staPassword.length() > 0) {
+    wifi.connectSta(staSsid, staPassword);
   }
+  LED_STATUS_DISCONNECTED();
+  ws_server.close();
+  ws_server.begin(port, name, type, CHECK_TEXT);
+  debug("Websocket on!");
+  Serial.print("[OK] ");Serial.println(wifi.ip);
+  videoUrl = String("http://") + wifi.ip + ":9000/mjpg";
 }
-
 
 void debug(String msg) {
   #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_DEBUG) 

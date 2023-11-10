@@ -14,7 +14,7 @@
 
 #define LED_STATUS_DISCONNECTED()  led_slow_blink()
 #define LED_STATUS_CONNECTED()  led_on()
-#define LED_STATUS_ERROOR()  led_fast_blink()
+#define LED_STATUS_ERROR()  led_fast_blink()
 
 
 void led_init(uint8_t _pin=LED_PIN);

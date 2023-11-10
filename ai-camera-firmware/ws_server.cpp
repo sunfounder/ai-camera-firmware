@@ -172,7 +172,7 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
       break;
     }
     case WStype_ERROR: {
-      LED_STATUS_ERROOR();
+      LED_STATUS_ERROR();
       #ifdef DEBUG
       Serial.println("[DEBUG] [WS] WStype_ERROR");
       #endif
@@ -234,7 +234,7 @@ void WS_Server::sendBIN(uint8_t* payload, size_t length) {
 }
 
 
-bool WS_Server::is_connected() {
+bool WS_Server::isConnected() {
   return ws_connected;
 }
 
