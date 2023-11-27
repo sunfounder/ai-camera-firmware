@@ -1,6 +1,8 @@
 #include "wifi_helper.h"
 
-WiFiHelper::WiFiHelper() {
+WiFiHelper::WiFiHelper() {}
+
+void WiFiHelper::begin(){
   WiFi.mode(WIFI_AP_STA);
 }
 
@@ -25,7 +27,7 @@ bool WiFiHelper::connectSta(String ssid, String password){
     #endif
     delay(500);
     count ++;
-    if (count > 30){
+    if (count > 20){
       #ifdef DEBUG
       Serial.println("");
       Serial.println(WiFi.status());
@@ -36,6 +38,7 @@ bool WiFiHelper::connectSta(String ssid, String password){
   #ifdef DEBUG
   Serial.println("");
   #endif
+  isConnected = true;
   staConnected = true;
   ip = WiFi.localIP().toString();
   return true;
@@ -44,6 +47,7 @@ bool WiFiHelper::connectSta(String ssid, String password){
 bool WiFiHelper::connectAp(String ssid, String password){
   WiFi.softAP(ssid.c_str(), password.c_str());
   ip = WiFi.softAPIP().toString();
+  isConnected = true;
   return true;
 }
 

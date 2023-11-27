@@ -67,6 +67,120 @@ void WS_Server::loop() {
   ws.loop();
 }
 
+void WS_Server::send(String data) {
+  ws.sendTXT(client_num, data);
+}
+
+// https://github.com/Links2004/arduinoWebSockets/blob/master/src/WebSocketsServer.cpp#L230
+void WS_Server::sendBIN(uint8_t* payload, size_t length) {
+  // bool WebSocketsServerCore::sendBIN(uint8_t num, const uint8_t * payload, size_t length)
+  ws.sendBIN(client_num, payload, length);
+}
+
+
+bool WS_Server::isConnected() {
+  return ws_connected;
+}
+
+void handleConfig(String payload) {
+  DynamicJsonDocument config(WS_BUFFER_SIZE);
+  DynamicJsonDocument result(WS_BUFFER_SIZE);
+  deserializeJson(config, payload);
+
+  Preferences prefs;
+  prefs.begin("config");
+  result["state"] = "OK";
+  JsonArray errors = result.createNestedArray("errors");
+  JsonObject data = result.createNestedObject("data");
+
+  // Get name
+  if (config.containsKey("name")) {
+    String name = config["name"].as<String>();
+    prefs.putString("name", name.c_str());
+    data["name"] = name;
+  }
+  if (config.containsKey("type")) {
+    String type = config["type"].as<String>();
+    prefs.putString("type", type.c_str());
+  }
+  if (config.containsKey("apSsid")) {
+    String ap_ssid = config["apSsid"].as<String>();
+    prefs.putString("apSsid", ap_ssid.c_str());
+  }
+  if (config.containsKey("apPassword")) {
+    String ap_password = config["apPassword"].as<String>();
+    prefs.putString("apPassword", ap_password.c_str());
+  }
+  if (config.containsKey("staSsid")) {
+    String wifi_ssid = config["staSsid"].as<String>();
+    prefs.putString("staSsid", wifi_ssid.c_str());
+  }
+  if (config.containsKey("staPassword")) {
+    String wifi_password = config["staPassword"].as<String>();
+    prefs.putString("staPassword", wifi_password.c_str());
+  }
+  if (config.containsKey("command")) {
+    String command = config["command"].as<String>();
+    if (command == "restart-sta") {
+      String staSsid = prefs.getString("staSsid");
+      String staPassword = prefs.getString("staPassword");
+      WiFiHelper wifi;
+      if (staSsid.length() > 0 && staPassword.length() > 0) {
+        bool r = wifi.connectSta(staSsid, staPassword);
+        if (r) {
+          result["state"] = "OK";
+          result["ip"] = wifi.ip.c_str();
+        } else {
+          result["state"] = "ERROR";
+          errors.add("STA_CONNECT_ERROR");
+        }
+      } else {
+        result["state"] = "ERROR";
+        errors.add("STA_NOT_CONFIGURED");
+
+      }
+    } else {
+      result["state"] = "ERROR";
+      errors.add("UNKNOWN_COMMAND");
+    }
+  }
+  String result_str;
+  serializeJson(result, result_str);
+  ws.sendTXT(client_num, result_str.c_str());
+}
+
+void handleSunFounderController(String payload) {
+  // ------------- send simplified text -------------
+  DynamicJsonDocument recvBuffer(WS_BUFFER_SIZE);
+  deserializeJson(recvBuffer, payload);
+  String result = "WS+";
+
+  // REGIONS
+  for (int i=0; i<REGIONS_LENGTH; i++){
+    String region = String(REGIONS[i]);
+    String value;
+    if (recvBuffer[region].is<JsonArray>()) {
+      for (int j=0; j<recvBuffer[region].size(); j++) {
+        value += recvBuffer[region][j].as<String>();
+        if (j != recvBuffer[region].size()-1) value += ',';
+      }
+    } else {
+      value = recvBuffer[region].as<String>();
+    }
+
+    if (value == "true") value = "1";
+    else if (value == "false") value = "0";
+    if (value != "null") result += value;
+    if (i != REGIONS_LENGTH - 1) result += ';';
+  }
+
+  // send
+  if (millis() - last_send_time > SEND_INTERVAL ) {
+    Serial.println(result);
+    last_send_time = millis();
+  }
+}
+
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t length) {
   String out;
   client_num = cn;
@@ -126,44 +240,21 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
 
       // reset ping_pong time
       lastPingPong = millis();
-      if (strcmp(out.c_str(), "ping") == 0) {
+      if (out.compareTo("ping") == 0) {
+      // if (strcmp(out.c_str(), "ping") == 0) {
         Serial.println("[APPSTOP]");
         return;
       }
-
-      // ------------- send simplified text -------------
-      DynamicJsonDocument recvBuffer(WS_BUFFER_SIZE);
-      deserializeJson(recvBuffer, out);
-      String result = "WS+";
-
-      // REGIONS
-      for (int i=0; i<REGIONS_LENGTH; i++){
-        String region = String(REGIONS[i]);
-        String value;
-        if (recvBuffer[region].is<JsonArray>()) {
-          for (int j=0; j<recvBuffer[region].size(); j++) {
-            value += recvBuffer[region][j].as<String>();
-            if (j != recvBuffer[region].size()-1) value += ',';
-          }
-        } else {
-          value = recvBuffer[region].as<String>();
-        }
-
-        if (value == "true") value = "1";
-        else if (value == "false") value = "0";
-        if (value != "null") result += value;
-        if (i != REGIONS_LENGTH - 1) result += ';';
+      if (out.startsWith("SET+")) {
+        handleConfig(out.substring(4));
+        return;
       }
-
-      // send
-      if (millis() - last_send_time > SEND_INTERVAL ) {
-        Serial.println(result);
-        last_send_time = millis();
-      }
+      handleSunFounderController(out);
       break;
     }
     // For everything else: do nothing
     case WStype_BIN: {
+      lastPingPong = millis();
       Serial.print("WSB+");
       Serial.write(payload, length); Serial.println();
       #ifdef DEBUG
@@ -222,19 +313,3 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
     }
   }
 }
-
-void WS_Server::send(String data) {
-  ws.sendTXT(client_num, data);
-}
-
-// https://github.com/Links2004/arduinoWebSockets/blob/master/src/WebSocketsServer.cpp#L230
-void WS_Server::sendBIN(uint8_t* payload, size_t length) {
-  // bool WebSocketsServerCore::sendBIN(uint8_t num, const uint8_t * payload, size_t length)
-  ws.sendBIN(client_num, payload, length);
-}
-
-
-bool WS_Server::isConnected() {
-  return ws_connected;
-}
-

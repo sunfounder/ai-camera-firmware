@@ -1,13 +1,7 @@
 #ifndef __WIFI_HELPER_H__
 #define __WIFI_HELPER_H__
 
-#include <WiFiMulti.h>
 #include <WiFi.h>
-
-// Mode
-#define NONE 0
-#define STA 1
-#define AP 2
 
 class WiFiHelper {
   public:
@@ -16,6 +10,7 @@ class WiFiHelper {
     bool staConnected = false;
     bool isConnected = false;
 
+    void begin();
     void checkSta();
     bool connectAp(String ssid, String password); 
     bool connectSta(String ssid, String password);

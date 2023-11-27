@@ -22,6 +22,6 @@ void led_off();
 void led_on();
 void led_slow_blink();
 void led_fast_blink();
-void led_status_handler();
+void ledStatusHandler();
 
 

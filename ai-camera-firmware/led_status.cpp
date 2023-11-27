@@ -27,7 +27,7 @@ void led_fast_blink() {
   led_status = LED_FAST_BLINK;
 }
 
-void led_status_handler() {
+void ledStatusHandler() {
   switch (led_status) {
     case LED_OFF:
       digitalWrite(led_pin, HIGH);
