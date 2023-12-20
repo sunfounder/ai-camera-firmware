@@ -49,6 +49,7 @@ String staPassword;
 
 /* Set check info for Sunfounder Controller APP */
 extern String videoUrl;
+extern String videoTemplate;
 #define CHECK_TEXT "SC"
 
 /* Set the Debug Level */
@@ -88,10 +89,10 @@ extern String videoUrl;
 WiFiHelper wifi = WiFiHelper();
 Preferences prefs;
 
-WS_Server ws_server = WS_Server();
+WS_Server wsServer = WS_Server();
 
 static QueueHandle_t xQueueHttpFrame = NULL;
-bool is_camera_started = false;
+bool isCameraStarted = false;
 bool inited = false; // For default config settings. All settings send befor inited will be treated as default settings.
                      // default settings will be ignored if settings in flash are not empty.
 
@@ -116,6 +117,8 @@ void error(String msg, String data);
 void setup() {
   Serial.begin(115200);
   Serial.setTimeout(SERIAL_TIMEOUT);
+
+  videoTemplate = "http://ip:9000/mjpg";
 
   Serial.println(F("[Init]"));
   wifi.begin();
@@ -158,8 +161,8 @@ void wsServerCameraHandler() {
     if (wifi.staConnected) {
       wifi.checkSta();
     }
-    ws_server.loop();
-    if (!is_camera_started){
+    wsServer.loop();
+    if (!isCameraStarted){
       cameraInit();
     }
   }
@@ -173,14 +176,13 @@ void serialReceivedHandler() {
       handleSet(rxBuf.substring(4));
     } else if (rxBuf.substring(0, 3) == "WS+") {
       String out = rxBuf.substring(3);
-      ws_server.send(out);
+      wsServer.send(out);
     } else if (rxBuf.substring(0, 4) == "WSB+") {
       // uint8_t* byte_data = (uint8_t*)(rxBuf.substring(4).c_str());
       String _data = rxBuf.substring(4);
       size_t len = _data.length();
-      Serial.print(F("len:")); Serial.println(len);
       uint8_t* byte_data = (uint8_t*)(_data.c_str());
-      ws_server.sendBIN(byte_data, len);
+      wsServer.sendBIN(byte_data, len);
     }
   }
 }
@@ -188,58 +190,58 @@ void serialReceivedHandler() {
 String serialRead() {
   String buf = "";
   char inChar;
-  bool is_valid = false;
+  bool isValid = false;
   // -- binary data protocol --
-  bool is_bin = false;
+  bool isBin = false;
   const uint8_t StartCode = 0x0C;
   const uint8_t EndCode = 0x0D;
   uint8_t len = 0;
-  uint8_t data_len = 3; // note that default value  need to larger than 3
+  uint8_t dataLen = 3; // note that default value  need to larger than 3
 
-  uint32_t char_time = millis();
-  while (Serial.available() || millis() - char_time < CHAR_TIMEOUT) {
+  uint32_t charTime = millis();
+  while (Serial.available() || millis() - charTime < CHAR_TIMEOUT) {
     // ------------ read data --------------------
     inChar = (char)Serial.read();
     
-    if (is_valid == false) { // check & discard the 0xff at the beginning
+    if (isValid == false) { // check & discard the 0xff at the beginning
       if ((int)inChar == 0xff || inChar == '\r' || inChar == '\n') {
         len = 0;
         continue;
       } else {
-        is_valid = true;
+        isValid = true;
       }
     }
 
     if((int)inChar == StartCode) { 
-      is_bin = true;
+      isBin = true;
     }
 
     // ------------ text data --------------------
     
-    if (!is_bin) {
+    if (!isBin) {
       if (inChar == '\n') { // \r\n receive end
         break;
       } else if (inChar == '\r') {
-        char_time = millis();
+        charTime = millis();
         continue;
       } else {
         buf += inChar;
-        char_time = millis();
+        charTime = millis();
       }
     }
 
     // ------------ binary data --------------------
-    else if (is_bin) {
+    else if (isBin) {
       len++;
       // get binary data length in 2nd byte
-      if (len == 2) data_len = (uint8_t)inChar;
+      if (len == 2) dataLen = (uint8_t)inChar;
 
-      if (len <= data_len) {
+      if (len <= dataLen) {
         buf += inChar;
-        char_time = millis();
+        charTime = millis();
       }
 
-      if (len >= data_len) {
+      if (len >= dataLen) {
         break;
       }
     }
@@ -276,7 +278,7 @@ void cameraInit(){
       CAMERA_PIN_PCLK, CAMERA_PIN_VSYNC, CAMERA_PIN_HREF, CAMERA_PIN_SIOD,
       CAMERA_PIN_SIOC, CAMERA_PIN_PWDN, CAMERA_PIN_RESET);
   register_httpd(xQueueHttpFrame, NULL, true);
-  is_camera_started = true;
+  isCameraStarted = true;
   log_i("Free PSRAM: %d", ESP.getFreePsram());
   info("camera stream start on: ", videoUrl);
 }
@@ -425,7 +427,8 @@ void handleSet(String cmd) {
       bool result = wifi.connectSta(staSsid, staPassword);
       if (result) {
         debug("STA connected");
-        Serial.print("[OK]");Serial.println(wifi.ip);
+        wsServer.setStaIp(wifi.staIp);
+        Serial.print("[OK]");Serial.println(wifi.staIp);
       } else {
         debug("STA connect failed");
         Serial.println("[ERROR] STA connect failed");
@@ -485,7 +488,6 @@ String getStrOf(String str, uint8_t index, char divider) {
   }
   // Get end index
   for (end = start, j = 0; end < length; end++) {
-    // Serial.println((int)str[end]);
     if (str[end] == divider) {
       break;
     }
@@ -523,19 +525,33 @@ void setStrOf(char* str, uint8_t index, String value) {
 }
 
 void start() {
+  bool staConnected = false;
   LED_STATUS_ERROR();
   wifi.connectAp(apSsid, apPassword);
   if (staSsid.length() > 0 || staPassword.length() > 8) {
-    wifi.connectSta(staSsid, staPassword);
+    bool staConnected = wifi.connectSta(staSsid, staPassword);
+    if (staConnected) {
+      debug(F("STA connected"));
+    } else {
+      debug(F("STA connect failed"));
+      Serial.println("[ERROR] STA connect failed");
+    }
   } else {
-    debug("staSsid or staPassword empty!");
+    debug(F("STA SSID or STA password empty!"));
   }
   LED_STATUS_DISCONNECTED();
-  ws_server.close();
-  ws_server.begin(port, name, type, CHECK_TEXT);
-  debug("Websocket on!");
-  Serial.print("[OK] ");Serial.println(wifi.ip);
-  videoUrl = String("http://") + wifi.ip + ":9000/mjpg";
+  wsServer.close();
+  wsServer.begin(port, name, type, CHECK_TEXT);
+  debug(F("Websocket on!"));
+  Serial.print(F("[OK] "));
+  if (staConnected) {
+    wsServer.setStaIp(wifi.staIp);
+    videoUrl = String("http://") + wifi.staIp + ":9000/mjpg";
+    Serial.println(wifi.staIp);
+  } else {
+    videoUrl = String("http://") + wifi.apIp + ":9000/mjpg";
+    Serial.println(wifi.apIp);
+  }
   inited = true;
 }
 

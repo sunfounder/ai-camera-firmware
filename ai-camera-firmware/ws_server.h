@@ -23,6 +23,7 @@ class WS_Server {
     void send(String data);
     void sendBIN(uint8_t* payload, size_t length);
     bool isConnected();
+    void setStaIp(String ip);
   private:
     int port;
 };

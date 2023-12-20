@@ -6,7 +6,8 @@
 class WiFiHelper {
   public:
     WiFiHelper();
-    String ip = "";
+    String apIp = "";
+    String staIp = "";
     bool staConnected = false;
     bool isConnected = false;
 

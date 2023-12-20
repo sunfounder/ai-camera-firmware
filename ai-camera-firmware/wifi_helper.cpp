@@ -40,13 +40,13 @@ bool WiFiHelper::connectSta(String ssid, String password){
   #endif
   isConnected = true;
   staConnected = true;
-  ip = WiFi.localIP().toString();
+  staIp = WiFi.localIP().toString();
   return true;
 }
 
 bool WiFiHelper::connectAp(String ssid, String password){
   WiFi.softAP(ssid.c_str(), password.c_str());
-  ip = WiFi.softAPIP().toString();
+  apIp = WiFi.softAPIP().toString();
   isConnected = true;
   return true;
 }
