@@ -12,14 +12,14 @@
     - ArduinoJson (by Benoit Blanchon)
     - WebSockets (by Markus Sattler) (Links2004)
 
-  Version: 1.3.0
+  Version: 1.4.0
     -- https://github.com/sunfounder/ai-camera-firmware
   
   Author: Sunfounder
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.3.0"
+#define VERSION "1.4.0"
 
 #include "led_status.hpp"
 #include "who_camera.h"
@@ -30,6 +30,9 @@
 #include "soc/soc.h"    // disable brownout detector
 #include "soc/rtc_cntl_reg.h"
 #include "esp32/rom/rtc.h" // rst reason 
+#include <ESPmDNS.h> // mDNS
+
+#include "ota_server.hpp" // OTA
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/ResetReason/ResetReason.ino
 
 /* Select development board */
@@ -96,6 +99,8 @@ bool is_camera_started = false;
 
 String rxBuf = "";
 
+bool otaStarted = false;
+
 /* ----------------------- Functions -------------------------------- */
 #define IsStartWith(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
 void camera_init();
@@ -144,6 +149,7 @@ void loop() {
   led_status_handler();
   ws_server_camera_handler();
   serial_received_handler();
+  otaHandler();
   delay(6);
 }
 
@@ -161,6 +167,10 @@ void ws_server_camera_handler() {
   } 
 } 
 
+void otaHandler() {
+  if (otaStarted) otaLoop();
+}
+
 void serial_received_handler() {
   rxBuf = serialRead();
   if (rxBuf.length() > 0) {
@@ -171,10 +181,8 @@ void serial_received_handler() {
       String out = rxBuf.substring(3);
       ws_server.send(out);
     } else if (rxBuf.substring(0, 4) == "WSB+") {
-      // uint8_t* byte_data = (uint8_t*)(rxBuf.substring(4).c_str());
       String _data = rxBuf.substring(4);
       size_t len = _data.length();
-      Serial.print(F("len:")); Serial.println(len);
       uint8_t* byte_data = (uint8_t*)(_data.c_str());
       ws_server.sendBIN(byte_data, len);
     }
@@ -259,6 +267,15 @@ void camera_init(){
   is_camera_started = true;
   log_i("Free PSRAM: %d", ESP.getFreePsram());
   info("camera stream start on: ", videoUrl);
+}
+
+void mDNSInit() {
+  if (MDNS.begin(name)) { // Set mDNS
+    otaStarted = true;
+  } else {
+    otaStarted = false;
+    Serial.println(F("Warning: Error setting up MDNS responder!"));
+  }
 }
 
 void handleSet(String cmd) {
@@ -364,7 +381,6 @@ String getStrOf(String str, uint8_t index, char divider) {
   }
   // Get end index
   for (end = start, j = 0; end < length; end++) {
-    // Serial.println((int)str[end]);
     if (str[end] == divider) {
       break;
     }
@@ -402,7 +418,6 @@ void setStrOf(char* str, uint8_t index, String value) {
 }
 
 void start() {
-  
   LED_STATUS_ERROOR();
   if (ssid.length() == 0) {
     error("Please set ssid");
@@ -419,6 +434,8 @@ void start() {
       LED_STATUS_ERROOR();
     } else {
       LED_STATUS_DISCONNECTED();
+      mDNSInit();
+      otaBegin(VERSION);
       ws_server.close();
       ws_server.begin(port, name, type, CHECK_TEXT);
       debug("Websocket on!");
