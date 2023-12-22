@@ -19,7 +19,7 @@
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.4.0"
+#define VERSION "1.5.0"
 
 #include "led_status.hpp"
 #include "who_camera.h"
@@ -31,6 +31,9 @@
 #include "soc/rtc_cntl_reg.h"
 #include "esp32/rom/rtc.h" // rst reason 
 #include <Preferences.h> // Save configs
+#include <ESPmDNS.h> // mDNS
+
+#include "ota_server.hpp" // OTA
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/ResetReason/ResetReason.ino
 
 /* Select development board */
@@ -98,6 +101,8 @@ bool inited = false; // For default config settings. All settings send befor ini
 
 String rxBuf = "";
 
+bool otaStarted = false;
+
 /* ----------------------- Functions -------------------------------- */
 #define IsStartWith(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
 void cameraInit();
@@ -132,6 +137,10 @@ void setup() {
   pinMode(CAMERA_PIN_FLASH, OUTPUT); // init flash lamp
   digitalWrite(CAMERA_PIN_FLASH, 0); // 0:turn off flash lamp
 
+  wifi.connectAp(apSsid, apPassword);
+  mDNSInit();
+  otaBegin(VERSION);
+
   int reason = rtc_get_reset_reason(0); // cpu0
   if (reason != 12) { // 12, SW_CPU_RESET,  Software reset CPU
     Serial.println(VERSION);
@@ -151,6 +160,7 @@ void loop() {
   ledStatusHandler();
   wsServerCameraHandler();
   serialReceivedHandler();
+  otaHandler();
   delay(6);
 }
 
@@ -168,6 +178,10 @@ void wsServerCameraHandler() {
   }
 } 
 
+void otaHandler() {
+  if (otaStarted) otaLoop();
+}
+
 void serialReceivedHandler() {
   rxBuf = serialRead();
   if (rxBuf.length() > 0) {
@@ -178,7 +192,6 @@ void serialReceivedHandler() {
       String out = rxBuf.substring(3);
       wsServer.send(out);
     } else if (rxBuf.substring(0, 4) == "WSB+") {
-      // uint8_t* byte_data = (uint8_t*)(rxBuf.substring(4).c_str());
       String _data = rxBuf.substring(4);
       size_t len = _data.length();
       uint8_t* byte_data = (uint8_t*)(_data.c_str());
@@ -281,6 +294,15 @@ void cameraInit(){
   isCameraStarted = true;
   log_i("Free PSRAM: %d", ESP.getFreePsram());
   info("camera stream start on: ", videoUrl);
+}
+
+void mDNSInit() {
+  if (MDNS.begin(name)) { // Set mDNS
+    otaStarted = true;
+  } else {
+    otaStarted = false;
+    Serial.println(F("Warning: Error setting up MDNS responder!"));
+  }
 }
 
 void handleSet(String cmd) {
@@ -527,7 +549,6 @@ void setStrOf(char* str, uint8_t index, String value) {
 void start() {
   bool staConnected = false;
   LED_STATUS_ERROR();
-  wifi.connectAp(apSsid, apPassword);
   if (staSsid.length() > 0 || staPassword.length() > 8) {
     bool staConnected = wifi.connectSta(staSsid, staPassword);
     if (staConnected) {
