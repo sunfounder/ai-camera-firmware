@@ -15,6 +15,9 @@ class WiFiHelper {
     void checkSta();
     bool connectAp(String ssid, String password); 
     bool connectSta(String ssid, String password);
+  private:
+    String macAddress;
+    String macPrefix;
 };
 
 #endif

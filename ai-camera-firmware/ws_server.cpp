@@ -117,6 +117,7 @@ void handleConfig(String payload) {
   if (config.containsKey("apSsid")) {
     String ap_ssid = config["apSsid"].as<String>();
     prefs.putString("apSsid", ap_ssid.c_str());
+    String tmp = prefs.getString("apSsid");
     result["state"] = F("OK");
     // Serial.print("set apSsid: ");Serial.println(ap_ssid);
   }

@@ -4,6 +4,10 @@ WiFiHelper::WiFiHelper() {}
 
 void WiFiHelper::begin(){
   WiFi.mode(WIFI_AP_STA);
+  macAddress = WiFi.macAddress();
+  macPrefix = macAddress;
+  macPrefix.replace(":", "");
+  macPrefix = macPrefix.substring(6, 12);
 }
 
 bool WiFiHelper::connectSta(String ssid, String password){
@@ -45,7 +49,8 @@ bool WiFiHelper::connectSta(String ssid, String password){
 }
 
 bool WiFiHelper::connectAp(String ssid, String password){
-  WiFi.softAP(ssid.c_str(), password.c_str());
+  String temp = ssid + '-' + macPrefix;
+  WiFi.softAP(temp.c_str(), password.c_str());
   apIp = WiFi.softAPIP().toString();
   isConnected = true;
   return true;

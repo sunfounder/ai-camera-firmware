@@ -268,10 +268,10 @@ String serialRead() {
 void readConfig() {
   name = prefs.getString("name", DEFAULT_NAME);
   type = prefs.getString("type", DEFAULT_TYPE);
-  apSsid = prefs.getString("ap_ssid", DEFAULT_AP_SSID);
-  apPassword = prefs.getString("ap_password", DEFAULT_AP_PASSWORD);
-  staSsid = prefs.getString("sta_ssid", "");
-  staPassword = prefs.getString("sta_password", "");
+  apSsid = prefs.getString("apSsid", DEFAULT_AP_SSID);
+  apPassword = prefs.getString("apPassword", DEFAULT_AP_PASSWORD);
+  staSsid = prefs.getString("staSsid", "");
+  staPassword = prefs.getString("staPassword", "");
   // debug("readConfig");
   // debug("name: ", name);
   // debug("type: ", type);
@@ -340,15 +340,10 @@ void handleSet(String cmd) {
   } 
   // TYPE
   else if (_4_chars_cmd == "TYPE"){
-    temp = cmd.substring(4);
-    if (type.compareTo(DEFAULT_TYPE) == 0 || inited == true) {
-      type = temp;
-      debug("Set TYPE: ", type);
-      prefs.putString("type", type);
-      Serial.println("[OK]");
-    } else {
-      Serial.println("[OK] TYPE already set");
-    }
+    type = cmd.substring(4);
+    debug("Set TYPE: ", type);
+    prefs.putString("type", type);
+    Serial.println("[OK]");
     return;
   } 
   // SSID
