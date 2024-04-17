@@ -149,6 +149,9 @@ void setup() {
     Serial.println(VERSION); 
   }
 
+  // Check if factory reset needed
+  factoryResetCheck();
+
   // log_i("psram: %d", psramFound());
   // log_i("Total heap: %d", ESP.getHeapSize()); 
   // log_i("Free heap: %d", ESP.getFreeHeap());
@@ -614,4 +617,28 @@ void error(String msg, String data) {
     Serial.print(msg);
     Serial.println(data);
   #endif
+}
+
+void factoryResetCheck() {
+  uint8_t sense = 13;
+  uint8_t pull = 15;
+  pinMode(sense, INPUT_PULLUP);
+  pinMode(pull, OUTPUT);
+  digitalWrite(pull, 0);
+  Serial.println("Factory Reset check");
+  Serial.printf("IO%d: %d\n", sense, digitalRead(sense));
+  if (digitalRead(sense) == 0) {
+    Serial.printf("IO%d pull down!\n", sense);
+    for (uint8_t i=0; i<2; i++) {
+      analogWrite(CAMERA_PIN_FLASH, 1);
+      delay(100);
+      analogWrite(CAMERA_PIN_FLASH, 0);
+      delay(100);
+    }
+    prefs.clear();
+    Serial.println("Factory Reseted!");
+    while(1);;
+  }
+  pinMode(pull, INPUT);
+  Serial.println("Skip");
 }

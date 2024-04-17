@@ -7,6 +7,12 @@ This is a firmware read convert uart command and create a websocket server. It's
  - WebSockets by Markus Sattler
  - ArduinoJson
 
+## Fastory Reset
+
+You may need to reset the module to factory settings, if you forget the AP SSID and password. To do this, Connect the board to power, short IO13 and IO15 with a tweezer or a screwdriver, then press the reset button, and release the reset button. You will see the big bright LED blink twice fast. Then you can release the tweezer or screwdriver, and press the reset button again. The module will reset to factory settings.
+
+
+
 ## Flash Setting
 - Pay attention to enable PSRAM, select "Huge APP" Partition Scheme
 
@@ -24,13 +30,28 @@ This is a firmware read convert uart command and create a websocket server. It's
 
 ## Commands
 
-`SET+SSID<ssid>`: set Wi-Fi SSID
+
+`SET+NAME<name>`: set device name
+
+```
+SET+NAMEAI-Camera
+```
+
+`SET+TYPE<type>`: set device type
+
+```
+SET+TYPEAI-Camera
+```
+
+
+
+`SET+SSID<ssid>`: set Wi-Fi SSID **DEPRECATED, use APPSK or STASSID instead**
 
 ```
 SET+SSIDSunFounder
 ```
 
-`SET+PSK<password>`: set Wi-Fi Password
+`SET+PSK<password>`: set Wi-Fi Password **DEPRECATED, use APPSK or STAPSK instead**
 
 ```
 SET+PSKsunfounder
@@ -42,10 +63,34 @@ SET+PSKsunfounder
 SET+PORT8765
 ```
 
-`SET+MODE<mode>`: set Wi-Fi Mode, STA = 1, AP = 2
+`SET+MODE<mode>`: set Wi-Fi Mode, STA = 1, AP = 2 **DEPRECATED, now it's dual mode**
 
 ```
 SET+MODE1
+```
+
+`SET+APSSID<ssid>`: set AP SSID
+
+```
+SET+APSSIDSunFounder
+```
+
+`SET+APPSK<password>`: set AP Password
+
+```
+SET+APPSKsunfounder
+```
+
+`SET+STASSID<ssid>`: set STA SSID
+
+```
+SET+STASSIDMakerStarsHall
+```
+
+`SET+STAPSK<password>`: set STA Password
+
+```
+SET+STAPSKsunfounder
 ```
 
 `SET+START`: set Start, return IP if connected
@@ -54,17 +99,33 @@ SET+MODE1
 SET+START
 ```
 
+`SET+LAMP<value>`: set Lamp brightness, 0-100
+
+```
+set+LAMP50
+```
+
 `SET+RESET`: Reset module
 
 ```
 SET+RESET
 ```
 
-`SET+CAMERA_MODE`: set Camera pixel format, AI = 0, Stream = 1, Both = 2. AI need RGB565 format, Stream need JPEG format. In Stream-Only mode, camera output JPEG format directly, makes fps higher. In AI-only camera output RGB565, and doestn't need to convert to JPEG and stream, makes fps a little bit higher to 3 fps. In Both mode, camera output RGB565 format for AI than convert to JPEG for stream, makes fps low to 2 fps.
+`SET+RSTSTA`: Restart STA, reconnect to Wi-Fi
 
 ```
-SET+CAMERA_MODE2
+SET+RSTSTA
 ```
+
+`SET+RSTCFG`: Reset configuration Factory Reset
+
+```
+SET+RSTCFG
+```
+
+## OTA
+
+You can update the firmware over the air. To do this, connect to the AP of the module, go to http://192.168.4.1. On the webpage, choose the firmware file, and click upload. The module will update the firmware and restart.
 
 ## Data
 
@@ -74,10 +135,10 @@ SET+CAMERA_MODE2
 WS+{"value": 25}
 ```
 
-`AI+<data>`: AI camera data [left, top, right, bottom]
+`WSB+<data>`: send binary data over websocket
 
 ```
-AI+[93, 59, 208, 176]
+WSB+Hello
 ```
 
 ## Example
