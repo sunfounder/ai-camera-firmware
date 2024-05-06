@@ -553,7 +553,7 @@ void start() {
       debug(F("STA connected"));
     } else {
       debug(F("STA connect failed"));
-      Serial.println("[ERROR] STA connect failed");
+      // Serial.println("[ERROR] STA connect failed");
     }
   } else {
     debug(F("STA SSID or STA password empty!"));
@@ -625,10 +625,7 @@ void factoryResetCheck() {
   pinMode(sense, INPUT_PULLUP);
   pinMode(pull, OUTPUT);
   digitalWrite(pull, 0);
-  Serial.println("Factory Reset check");
-  Serial.printf("IO%d: %d\n", sense, digitalRead(sense));
   if (digitalRead(sense) == 0) {
-    Serial.printf("IO%d pull down!\n", sense);
     for (uint8_t i=0; i<2; i++) {
       analogWrite(CAMERA_PIN_FLASH, 1);
       delay(100);
@@ -636,9 +633,7 @@ void factoryResetCheck() {
       delay(100);
     }
     prefs.clear();
-    Serial.println("Factory Reseted!");
     while(1);;
   }
   pinMode(pull, INPUT);
-  Serial.println("Skip");
 }
