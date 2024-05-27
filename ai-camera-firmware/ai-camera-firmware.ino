@@ -12,14 +12,14 @@
     - ArduinoJson (by Benoit Blanchon)
     - WebSockets (by Markus Sattler) (Links2004)
 
-  Version: 1.4.0
+  Repositorie:
     -- https://github.com/sunfounder/ai-camera-firmware
   
   Author: Sunfounder
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.5.0"
+#define VERSION "1.5.1"
 
 #include "led_status.hpp"
 #include "who_camera.h"
@@ -215,7 +215,7 @@ String serialRead() {
   uint8_t dataLen = 3; // note that default value  need to larger than 3
 
   uint32_t charTime = millis();
-  while (Serial.available() || millis() - charTime < CHAR_TIMEOUT) {
+  while (Serial.available() && millis() - charTime < CHAR_TIMEOUT) {
     // ------------ read data --------------------
     inChar = (char)Serial.read();
     
