@@ -260,6 +260,9 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
     }
     // receive text
     case WStype_TEXT:{
+      #ifdef DEBUG
+      Serial.println("[DEBUG] [WS] WStype_TEXT");
+      #endif
       wsConnected = true;
       // Serial.print("WStype_TEXT, length: ");Serial.println(length);
 
@@ -283,13 +286,13 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
       break;
     }
     case WStype_BIN: {
+      #ifdef DEBUG
+      Serial.println("[DEBUG] [WS] WStype_BIN");
+      #endif
       // reset ping_pong time
       lastPingPong = millis();
       Serial.print("WSB+");
       Serial.write(payload, length); Serial.println();
-      #ifdef DEBUG
-      Serial.println("[DEBUG] [WS] WStype_BIN");
-      #endif
       break;
     }
     case WStype_ERROR: {
