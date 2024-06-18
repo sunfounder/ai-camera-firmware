@@ -12,9 +12,11 @@ void WiFiHelper::begin(){
 
 bool WiFiHelper::connectSta(String ssid, String password){
 
+  #ifdef DEBUG
   Serial.println(F("Connecting to WiFi ..."));
   Serial.print(F("ssid:"));Serial.println(ssid);
   Serial.print(F("psk:"));Serial.println(password);
+  #endif
 
   // Connect to wifi
   WiFi.disconnect();
