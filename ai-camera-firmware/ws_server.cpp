@@ -5,7 +5,6 @@
 
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t* payload, size_t length);
 
-WiFiHelper wifi;
 WebSocketsServer ws = WebSocketsServer(8765);
 
 uint8_t client_num = 0;
@@ -143,6 +142,7 @@ void handleConfig(String payload) {
     String command = config["command"].as<String>();
     if (command == "restart-sta") {
       // Serial.println("restart-sta");
+      WiFiHelper wifi;
       String staSsid = prefs.getString("staSsid");
       String staPassword = prefs.getString("staPassword");
       if (staSsid.length() > 0 && staPassword.length() > 0) {
@@ -161,6 +161,7 @@ void handleConfig(String payload) {
         errors.add(F("STA_NOT_CONFIGURED"));
       }
     } else if (command == "scan-wifi") {
+      WiFiHelper wifi;
       uint8_t count = wifi.scan();
       result["state"] = F("OK");
       JsonArray networks = result.createNestedArray("networks");
@@ -173,6 +174,7 @@ void handleConfig(String payload) {
         network["bssid"] = wifi.getScanedBSSID(i);
       }
     } else if (command == "scan-clear") {
+      WiFiHelper wifi;
       wifi.scanClean();
       result["state"] = F("OK");
     } else {
