@@ -56,6 +56,26 @@ bool WiFiHelper::connectAp(String ssid, String password){
   return true;
 }
 
+uint8_t WiFiHelper::scan() { return WiFi.scanNetworks(); }
+
+void WiFiHelper::scanClean() { WiFi.scanDelete(); }
+
+String WiFiHelper::getScanedSSID(uint8_t index) { return WiFi.SSID(index); }
+
+int32_t WiFiHelper::getScanedRSSI(uint8_t index) { return WiFi.RSSI(index); }
+
+uint8_t WiFiHelper::getScanedSecure(uint8_t index) {
+  return WiFi.encryptionType(index);
+}
+
+int32_t WiFiHelper::getScanedChannel(uint8_t index) {
+  return WiFi.channel(index);
+}
+
+String WiFiHelper::getScanedBSSID(uint8_t index) {
+  return WiFi.BSSIDstr(index);
+}
+
 void WiFiHelper::checkSta(){
   if (WiFi.status() != WL_CONNECTED) {
     if (isConnected == true) {

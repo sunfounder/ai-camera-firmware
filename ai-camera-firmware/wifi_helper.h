@@ -15,6 +15,13 @@ class WiFiHelper {
     void checkSta();
     bool connectAp(String ssid, String password); 
     bool connectSta(String ssid, String password);
+    uint8_t scan();
+    void scanClean();
+    String getScanedSSID(uint8_t index);
+    int32_t getScanedRSSI(uint8_t index);
+    uint8_t getScanedSecure(uint8_t index);
+    int32_t getScanedChannel(uint8_t index);
+    String getScanedBSSID(uint8_t index);
   private:
     String macAddress;
     String macPrefix;

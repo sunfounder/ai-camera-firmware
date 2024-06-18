@@ -5,7 +5,9 @@
 
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t* payload, size_t length);
 
+WiFiHelper wifi;
 WebSocketsServer ws = WebSocketsServer(8765);
+
 uint8_t client_num = 0;
 bool wsConnected = false;
 
@@ -98,13 +100,11 @@ void handleConfig(String payload) {
   prefs.begin("config");
   result["state"] = F("ERROR");
   JsonArray errors = result.createNestedArray("errors");
-  JsonObject data = result.createNestedObject("data");
 
   // Get name
   if (config.containsKey("name")) {
     String name = config["name"].as<String>();
     prefs.putString("name", name.c_str());
-    data["name"] = name;
     result["state"] = F("OK");
     // Serial.print("set name: ");Serial.println(name);
   }
@@ -145,7 +145,6 @@ void handleConfig(String payload) {
       // Serial.println("restart-sta");
       String staSsid = prefs.getString("staSsid");
       String staPassword = prefs.getString("staPassword");
-      WiFiHelper wifi;
       if (staSsid.length() > 0 && staPassword.length() > 0) {
         bool r = wifi.connectSta(staSsid, staPassword);
         if (r) {
@@ -160,8 +159,22 @@ void handleConfig(String payload) {
       } else {
         result["state"] = F("ERROR");
         errors.add(F("STA_NOT_CONFIGURED"));
-
       }
+    } else if (command == "scan-wifi") {
+      uint8_t count = wifi.scan();
+      result["state"] = F("OK");
+      JsonArray networks = result.createNestedArray("networks");
+      for (uint8_t i=0; i<count; i++) {
+        JsonObject network = networks.createNestedObject();
+        network["ssid"] = wifi.getScanedSSID(i);
+        network["rssi"] = wifi.getScanedRSSI(i);
+        network["secure"] = wifi.getScanedSecure(i);
+        network["channel"] = wifi.getScanedChannel(i);
+        network["bssid"] = wifi.getScanedBSSID(i);
+      }
+    } else if (command == "scan-clear") {
+      wifi.scanClean();
+      result["state"] = F("OK");
     } else {
       result["state"] = F("ERROR");
       errors.add(F("UNKNOWN_COMMAND"));
