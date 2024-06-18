@@ -548,7 +548,7 @@ void start() {
   bool staConnected = false;
   LED_STATUS_ERROR();
   if (staSsid.length() > 0 || staPassword.length() > 8) {
-    bool staConnected = wifi.connectSta(staSsid, staPassword);
+    staConnected = wifi.connectSta(staSsid, staPassword);
     if (staConnected) {
       debug(F("STA connected"));
     } else {
