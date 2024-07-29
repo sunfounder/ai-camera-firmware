@@ -4,16 +4,15 @@ This is a firmware read convert uart command and create a websocket server. It's
 
 ## Dependencies
 
- - WebSockets by Markus Sattler
- - ArduinoJson
+- WebSockets by Markus Sattler
+- ArduinoJson
 
 ## Fastory Reset
 
 You may need to reset the module to factory settings, if you forget the AP SSID and password. To do this, Connect the board to power, short IO13 and IO15 with a tweezer or a screwdriver, then press the reset button, and release the reset button. You will see the big bright LED blink twice fast. Then you can release the tweezer or screwdriver, and press the reset button again. The module will reset to factory settings.
 
-
-
 ## Flash Setting
+
 - Pay attention to enable PSRAM, select "Huge APP" Partition Scheme
 
     Board: "ESP32 Dev Module"
@@ -22,14 +21,13 @@ You may need to reset the module to factory settings, if you forget the AP SSID 
     Flash Frequency: "80MHz"
     Flash Mode: "QIO"
     Flash Size: "4MB (32Mb)"
-    Partition Scheme: "Huge APP (3MB No OTA/1MB SPIFFS)"
+    Partition Scheme: "Minimal SPIFFS APP (1.9MB APP with OTA/190k SPIFFS)"
     Core Debug Level: "None"
     PSRAM: "Enabled"
     Arduino Runs On: "Core 1"
     Events Run On: "Core 1"
 
 ## Commands
-
 
 `SET+NAME<name>`: set device name
 
@@ -42,8 +40,6 @@ SET+NAMEAI-Camera
 ```
 SET+TYPEAI-Camera
 ```
-
-
 
 `SET+SSID<ssid>`: set Wi-Fi SSID **DEPRECATED, use APPSK or STASSID instead**
 
@@ -125,7 +121,7 @@ SET+RSTCFG
 
 ## OTA
 
-You can update the firmware over the air. To do this, connect to the AP of the module, go to http://192.168.4.1. On the webpage, choose the firmware file, and click upload. The module will update the firmware and restart.
+You can update the firmware over the air. To do this, connect to the AP of the module, go to <http://192.168.4.1>. On the webpage, choose the firmware file, and click upload. The module will update the firmware and restart.
 
 ## Data
 
