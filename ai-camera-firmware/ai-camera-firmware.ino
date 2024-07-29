@@ -14,12 +14,12 @@
 
   Repositorie:
     -- https://github.com/sunfounder/ai-camera-firmware
-  
+
   Author: Sunfounder
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.5.1"
+#define VERSION "1.5.2"
 
 #include "led_status.hpp"
 #include "who_camera.h"
@@ -27,11 +27,11 @@
 #include "ws_server.h"
 #include "wifi_helper.h"
 #include "ArduinoJson.h"
-#include "soc/soc.h"    // disable brownout detector
+#include "soc/soc.h" // disable brownout detector
 #include "soc/rtc_cntl_reg.h"
-#include "esp32/rom/rtc.h" // rst reason 
-#include <Preferences.h> // Save configs
-#include <ESPmDNS.h> // mDNS
+#include "esp32/rom/rtc.h" // rst reason
+#include <Preferences.h>   // Save configs
+#include <ESPmDNS.h>       // mDNS
 
 #include "ota_server.hpp" // OTA
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/ResetReason/ResetReason.ino
@@ -79,8 +79,8 @@ extern String videoTemplate;
 #define CAMERA_HORIZONTAL_FLIP 1
 
 /* Set the SERIAL_TIMEOUT (ms) */
-#define SERIAL_TIMEOUT 100  // timeout 100ms
-#define CHAR_TIMEOUT 5 // char timeout (ms)
+#define SERIAL_TIMEOUT 100 // timeout 100ms
+#define CHAR_TIMEOUT 5     // char timeout (ms)
 
 /* Set default AP SSID, AP Password, Name, Type*/
 #define DEFAULT_AP_SSID "AI Camera"
@@ -119,9 +119,22 @@ void info(String msg, String data);
 void error(String msg, String data);
 
 /*--------------------- setup() & loop() ------------------------------*/
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   Serial.setTimeout(SERIAL_TIMEOUT);
+  delay(2);
+
+  int reason = rtc_get_reset_reason(0); // cpu0
+  if (reason != 12)
+  { // 12, SW_CPU_RESET,  Software reset CPU
+    Serial.println(VERSION);
+  }
+  else
+  {
+    Serial.print(F("[OK] ")); // send [OK] when Software Reset
+    Serial.println(VERSION);
+  }
 
   videoTemplate = "http://ip:9000/mjpg";
 
@@ -130,10 +143,10 @@ void setup() {
   prefs.begin("config");
   readConfig();
 
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable brownout detector
 
-  led_init(CAMERA_PIN_LED); //init status_led 
-  LED_STATUS_DISCONNECTED(); //turn on status_led
+  led_init(CAMERA_PIN_LED);          // init status_led
+  LED_STATUS_DISCONNECTED();         // turn on status_led
   pinMode(CAMERA_PIN_FLASH, OUTPUT); // init flash lamp
   digitalWrite(CAMERA_PIN_FLASH, 0); // 0:turn off flash lamp
 
@@ -141,25 +154,18 @@ void setup() {
   mDNSInit();
   otaBegin(VERSION);
 
-  int reason = rtc_get_reset_reason(0); // cpu0
-  if (reason != 12) { // 12, SW_CPU_RESET,  Software reset CPU
-    Serial.println(VERSION);
-  } else {
-    Serial.print(F("[OK] ")); // send [OK] when Software Reset
-    Serial.println(VERSION); 
-  }
-
   // Check if factory reset needed
   factoryResetCheck();
 
   // log_i("psram: %d", psramFound());
-  // log_i("Total heap: %d", ESP.getHeapSize()); 
+  // log_i("Total heap: %d", ESP.getHeapSize());
   // log_i("Free heap: %d", ESP.getFreeHeap());
   // log_i("Total PSRAM: %d", ESP.getPsramSize());
   // log_i("Free PSRAM: %d", ESP.getFreePsram());
 }
 
-void loop() {
+void loop()
+{
   ledStatusHandler();
   wsServerCameraHandler();
   serialReceivedHandler();
@@ -169,41 +175,55 @@ void loop() {
 
 /*--------------------- Functions------------------------------*/
 /* websocket loop && camera init */
-void wsServerCameraHandler() {
-  if (wifi.isConnected) {
-    if (wifi.staConnected) {
+void wsServerCameraHandler()
+{
+  if (wifi.isConnected)
+  {
+    if (wifi.staConnected)
+    {
       wifi.checkSta();
     }
     wsServer.loop();
-    if (!isCameraStarted){
+    if (!isCameraStarted)
+    {
       cameraInit();
     }
   }
-} 
-
-void otaHandler() {
-  if (otaStarted) otaLoop();
 }
 
-void serialReceivedHandler() {
+void otaHandler()
+{
+  if (otaStarted)
+    otaLoop();
+}
+
+void serialReceivedHandler()
+{
   rxBuf = serialRead();
-  if (rxBuf.length() > 0) {
+  if (rxBuf.length() > 0)
+  {
     // debug("RX: ", rxBuf);
-    if (rxBuf.substring(0, 4) == "SET+") {
+    if (rxBuf.substring(0, 4) == "SET+")
+    {
       handleSet(rxBuf.substring(4));
-    } else if (rxBuf.substring(0, 3) == "WS+") {
+    }
+    else if (rxBuf.substring(0, 3) == "WS+")
+    {
       String out = rxBuf.substring(3);
       wsServer.send(out);
-    } else if (rxBuf.substring(0, 4) == "WSB+") {
+    }
+    else if (rxBuf.substring(0, 4) == "WSB+")
+    {
       String _data = rxBuf.substring(4);
       size_t len = _data.length();
-      uint8_t* byte_data = (uint8_t*)(_data.c_str());
+      uint8_t *byte_data = (uint8_t *)(_data.c_str());
       wsServer.sendBIN(byte_data, len);
     }
   }
 }
 
-String serialRead() {
+String serialRead()
+{
   String buf = "";
   char inChar;
   bool isValid = false;
@@ -215,49 +235,65 @@ String serialRead() {
   uint8_t dataLen = 3; // note that default value  need to larger than 3
 
   uint32_t charTime = millis();
-  while (Serial.available() && millis() - charTime < CHAR_TIMEOUT) {
+  while (Serial.available() && millis() - charTime < CHAR_TIMEOUT)
+  {
     // ------------ read data --------------------
     inChar = (char)Serial.read();
-    
-    if (isValid == false) { // check & discard the 0xff at the beginning
-      if ((int)inChar == 0xff || inChar == '\r' || inChar == '\n') {
+
+    if (isValid == false)
+    { // check & discard the 0xff at the beginning
+      if ((int)inChar == 0xff || inChar == '\r' || inChar == '\n')
+      {
         len = 0;
         continue;
-      } else {
+      }
+      else
+      {
         isValid = true;
       }
     }
 
-    if((int)inChar == StartCode) { 
+    if ((int)inChar == StartCode)
+    {
       isBin = true;
     }
 
     // ------------ text data --------------------
-    
-    if (!isBin) {
-      if (inChar == '\n') { // \r\n receive end
+
+    if (!isBin)
+    {
+      if (inChar == '\n')
+      { // \r\n receive end
         break;
-      } else if (inChar == '\r') {
+      }
+      else if (inChar == '\r')
+      {
         charTime = millis();
         continue;
-      } else {
+      }
+      else
+      {
         buf += inChar;
         charTime = millis();
       }
     }
 
     // ------------ binary data --------------------
-    else if (isBin) {
+    else if (isBin)
+    {
       len++;
       // get binary data length in 2nd byte
-      if (len == 2) dataLen = (uint8_t)inChar;
+      if (len == 2)
+        dataLen = (uint8_t)inChar;
 
-      if (len <= dataLen) {
+      if (len <= dataLen)
+      {
         buf += inChar;
         charTime = millis();
       }
 
-      if (len >= dataLen) {
+      if (len >= dataLen)
+      {
         break;
       }
     }
@@ -268,24 +304,26 @@ String serialRead() {
   return buf;
 }
 
-void readConfig() {
+void readConfig()
+{
   name = prefs.getString("name", DEFAULT_NAME);
   type = prefs.getString("type", DEFAULT_TYPE);
   apSsid = prefs.getString("apSsid", DEFAULT_AP_SSID);
   apPassword = prefs.getString("apPassword", DEFAULT_AP_PASSWORD);
   staSsid = prefs.getString("staSsid", "");
   staPassword = prefs.getString("staPassword", "");
-  // debug("readConfig");
-  // debug("name: ", name);
-  // debug("type: ", type);
-  // debug("apSsid: ", apSsid);
-  // debug("apPassword: ", apPassword);
-  // debug("staSsid: ", staSsid);
-  // debug("staPassword: ", staPassword);
+  debug("readConfig");
+  debug("name: ", name);
+  debug("type: ", type);
+  debug("apSsid: ", apSsid);
+  debug("apPassword: ", apPassword);
+  debug("staSsid: ", staSsid);
+  debug("staPassword: ", staPassword);
 }
-  
-void cameraInit(){
-  xQueueHttpFrame = xQueueCreate(2, 2*sizeof(camera_fb_t *));
+
+void cameraInit()
+{
+  xQueueHttpFrame = xQueueCreate(2, 2 * sizeof(camera_fb_t *));
   pixformat_t pixel_format = PIXFORMAT_JPEG;
   register_camera(
       pixel_format, FRAMESIZE, FB_COUNT, xQueueHttpFrame, CAMERA_VERTICAL_FLIP, CAMERA_HORIZONTAL_FLIP,
@@ -299,28 +337,37 @@ void cameraInit(){
   info("camera stream start on: ", videoUrl);
 }
 
-void mDNSInit() {
-  if (MDNS.begin(name)) { // Set mDNS
+void mDNSInit()
+{
+  if (MDNS.begin(name))
+  { // Set mDNS
     otaStarted = true;
-  } else {
+  }
+  else
+  {
     otaStarted = false;
     Serial.println(F("Warning: Error setting up MDNS responder!"));
   }
 }
 
-void handleSet(String cmd) {
+void handleSet(String cmd)
+{
   String temp;
   // ------------ 3 characters command  ------------
   String _3_chars_cmd = cmd.substring(0, 3);
   // PSK
-  if (_3_chars_cmd == "PSK") {
+  if (_3_chars_cmd == "PSK")
+  {
     temp = cmd.substring(3);
-    if (apPassword.compareTo(DEFAULT_AP_PASSWORD) == 0 || inited == true) {
+    if (apPassword.compareTo(DEFAULT_AP_PASSWORD) == 0 || inited == true)
+    {
       apPassword = temp;
       debug("Set AP password: ", apPassword);
-      prefs.putString("ap_password", apPassword);
+      prefs.putString("apPassword", apPassword);
       Serial.println("[OK] PSK is deprecating, use APPSK or STAPSK");
-    } else {
+    }
+    else
+    {
       Serial.println("[OK] AP already set");
     }
     return;
@@ -329,57 +376,70 @@ void handleSet(String cmd) {
   // ------------ 4 characters command  ------------
   String _4_chars_cmd = cmd.substring(0, 4);
   // NAME
-  if (_4_chars_cmd == "NAME"){
+  if (_4_chars_cmd == "NAME")
+  {
     temp = cmd.substring(4);
-    if (name.compareTo(DEFAULT_NAME) == 0 || inited == true) {
+    if (name.compareTo(DEFAULT_NAME) == 0 || inited == true)
+    {
       name = temp;
       debug("Set NAME: ", name);
       prefs.putString("name", name);
       Serial.println("[OK]");
-    } else {
+    }
+    else
+    {
       Serial.println("[OK] NAME already set");
     }
     return;
-  } 
+  }
   // TYPE
-  else if (_4_chars_cmd == "TYPE"){
+  else if (_4_chars_cmd == "TYPE")
+  {
     type = cmd.substring(4);
     debug("Set TYPE: ", type);
     prefs.putString("type", type);
     Serial.println("[OK]");
     return;
-  } 
+  }
   // SSID
-  else if (_4_chars_cmd == "SSID"){
+  else if (_4_chars_cmd == "SSID")
+  {
     temp = cmd.substring(4);
-    if (staSsid.compareTo("") == 0 || inited == true) {
+    if (staSsid.compareTo("") == 0 || inited == true)
+    {
       staSsid = temp;
       debug("Set SSID: ", staSsid);
-      prefs.putString("sta_ssid", staSsid);
+      prefs.putString("staSsid", staSsid);
       Serial.println("[OK] SSID is deprecating, use APSSID or STASSID");
-    } else {
+    }
+    else
+    {
       Serial.println("[OK] SSID already set");
     }
     return;
-  } 
+  }
   // PORT
-  else if (_4_chars_cmd == "PORT"){
+  else if (_4_chars_cmd == "PORT")
+  {
     port = cmd.substring(4).toInt();
     debug("Set port: ", String(port));
     Serial.println("[OK]");
     return;
-  } 
+  }
   // MODE
-  else if (_4_chars_cmd == "MODE"){
+  else if (_4_chars_cmd == "MODE")
+  {
     Serial.println("[OK] MODE is deprecated");
     return;
   }
   // LAMP
-  else if (_4_chars_cmd == "LAMP") {
+  else if (_4_chars_cmd == "LAMP")
+  {
     uint8_t brightness_level = cmd.substring(4).toInt();
     // digitalWrite(CAMERA_PIN_FLASH, lamp_sw); // 0:turn off flash lamp, 1:turn on flash lamp
-    if (brightness_level > 10) brightness_level = 10; 
-    analogWrite(CAMERA_PIN_FLASH, brightness_level*25); //  brightness_level: 0~10, to pwm 0 ~ 250
+    if (brightness_level > 10)
+      brightness_level = 10;
+    analogWrite(CAMERA_PIN_FLASH, brightness_level * 25); //  brightness_level: 0~10, to pwm 0 ~ 250
     Serial.println("[OK]");
     return;
   }
@@ -387,26 +447,32 @@ void handleSet(String cmd) {
   // ------------ 5 characters command  ------------
   String _5_chars_cmd = cmd.substring(0, 5);
   // RESET
-  if (_5_chars_cmd == "RESET") {
+  if (_5_chars_cmd == "RESET")
+  {
     debug("Reset");
     delay(10);
     ESP.restart();
     return;
   }
   // START
-  else if (_5_chars_cmd == "START") {
+  else if (_5_chars_cmd == "START")
+  {
     start();
     return;
   }
   // AP PSK
-  else if (_5_chars_cmd == "APPSK") {
+  else if (_5_chars_cmd == "APPSK")
+  {
     temp = cmd.substring(5);
-    if (apPassword.compareTo(DEFAULT_AP_PASSWORD) == 0 || inited == true) {
+    if (apPassword.compareTo(DEFAULT_AP_PASSWORD) == 0 || inited == true)
+    {
       apPassword = temp;
       debug("Set AP password: ", apPassword);
-      prefs.putString("ap_password", apPassword);
+      prefs.putString("apPassword", apPassword);
       Serial.println("[OK]");
-    } else {
+    }
+    else
+    {
       Serial.println("[OK] AP already set");
     }
     return;
@@ -415,52 +481,70 @@ void handleSet(String cmd) {
   // ------------ 6 characters command  ------------
   String _6_chars_cmd = cmd.substring(0, 6);
   // AP SSID
-  if (_6_chars_cmd == "APSSID") {
+  if (_6_chars_cmd == "APSSID")
+  {
     temp = cmd.substring(6);
-    if (apSsid.compareTo(DEFAULT_AP_SSID) == 0 || inited == true) {
+    if (apSsid.compareTo(DEFAULT_AP_SSID) == 0 || inited == true)
+    {
       apSsid = temp;
       debug("Set AP ssid: ", apSsid);
-      prefs.putString("ap_ssid", apSsid);
+      debug("AP ssid temp: ", temp);
+      prefs.putString("apSsid", apSsid);
       Serial.println("[OK]");
-    } else {
+    }
+    else
+    {
       debug("AP already set");
       Serial.println("[OK] AP already set");
     }
     return;
   }
   // STA PSK
-  else if (_6_chars_cmd == "STAPSK") {
+  else if (_6_chars_cmd == "STAPSK")
+  {
     temp = cmd.substring(6);
-    if (staPassword.length() == 0 || inited == true) {
+    if (staPassword.length() == 0 || inited == true)
+    {
       staPassword = temp;
       debug("Set STA password: ", staPassword);
-      prefs.putString("sta_password", staPassword);
+      prefs.putString("staPassword", staPassword);
       Serial.println("[OK]");
-    } else {
+    }
+    else
+    {
       Serial.println("[OK] STA already set");
     }
     return;
   }
   // Restart STA
-  else if (_6_chars_cmd == "RSTSTA") {
-    if (staSsid.length() > 0 && staPassword.length() > 0) {
+  else if (_6_chars_cmd == "RSTSTA")
+  {
+    if (staSsid.length() > 0 && staPassword.length() > 0)
+    {
       bool result = wifi.connectSta(staSsid, staPassword);
-      if (result) {
+      if (result)
+      {
         debug("STA connected");
         wsServer.setStaIp(wifi.staIp);
-        Serial.print("[OK]");Serial.println(wifi.staIp);
-      } else {
+        Serial.print("[OK]");
+        Serial.println(wifi.staIp);
+      }
+      else
+      {
         debug("STA connect failed");
         Serial.println("[ERROR] STA connect failed");
       }
-    } else {
+    }
+    else
+    {
       debug("STA SSID or password is empty");
       Serial.println("[ERROR] STA not set");
     }
     return;
   }
   // Reset Config
-  else if (_6_chars_cmd == "RSTCFG") {
+  else if (_6_chars_cmd == "RSTCFG")
+  {
     prefs.clear();
     readConfig();
     debug("Reset config");
@@ -469,36 +553,46 @@ void handleSet(String cmd) {
   }
   // ------------ 7 characters command  ------------
   String _7_chars_cmd = cmd.substring(0, 7);
-  // SSID 
-  if (_7_chars_cmd == "STASSID") {
+  // SSID
+  if (_7_chars_cmd == "STASSID")
+  {
     temp = cmd.substring(7);
-    if (staSsid.length() == 0 || inited == true) {
+    if (staSsid.length() == 0 || inited == true)
+    {
       staSsid = temp;
       debug("Set STA SSID: ", staSsid);
-      prefs.putString("sta_ssid", staSsid);
+      prefs.putString("staSsid", staSsid);
       Serial.println("[OK]");
-    } else {
+    }
+    else
+    {
       Serial.println("[OK] STA SSID already set");
     }
     return;
   }
 
-
   // ----------- if no retrun before -----------
   Serial.println("[ERROR] SET+ Unknown command");
 }
 
-String getStrOf(String str, uint8_t index, char divider) {
+String getStrOf(String str, uint8_t index, char divider)
+{
   uint8_t start, end;
   uint8_t length = str.length();
   uint8_t i, j;
   // Get start index
-  if (index == 0) {
+  if (index == 0)
+  {
     start = 0;
-  } else {
-    for (start = 0, j = 1; start < length; start++) {
-      if (str[start] == divider) {
-        if (index == j) {
+  }
+  else
+  {
+    for (start = 0, j = 1; start < length; start++)
+    {
+      if (str[start] == divider)
+      {
+        if (index == j)
+        {
           start++;
           break;
         }
@@ -507,8 +601,10 @@ String getStrOf(String str, uint8_t index, char divider) {
     }
   }
   // Get end index
-  for (end = start, j = 0; end < length; end++) {
-    if (str[end] == divider) {
+  for (end = start, j = 0; end < length; end++)
+  {
+    if (str[end] == divider)
+    {
       break;
     }
   }
@@ -516,17 +612,24 @@ String getStrOf(String str, uint8_t index, char divider) {
   return str.substring(start, end);
 }
 
-void setStrOf(char* str, uint8_t index, String value) {
+void setStrOf(char *str, uint8_t index, String value)
+{
   uint8_t start, end;
   uint8_t length = strlen(str);
   uint8_t i, j;
   // Get start index
-  if (index == 0) {
+  if (index == 0)
+  {
     start = 0;
-  } else {
-    for (start = 0, j = 1; start < length; start++) {
-      if (str[start] == ';') {
-        if (index == j) {
+  }
+  else
+  {
+    for (start = 0, j = 1; start < length; start++)
+    {
+      if (str[start] == ';')
+      {
+        if (index == j)
+        {
           start++;
           break;
         }
@@ -535,8 +638,10 @@ void setStrOf(char* str, uint8_t index, String value) {
     }
   }
   // Get end index
-  for (end = start, j = 0; end < length; end++) {
-    if (str[end] == ';') {
+  for (end = start, j = 0; end < length; end++)
+  {
+    if (str[end] == ';')
+    {
       break;
     }
   }
@@ -544,18 +649,25 @@ void setStrOf(char* str, uint8_t index, String value) {
   strcpy(str, strValue.c_str());
 }
 
-void start() {
+void start()
+{
   bool staConnected = false;
   LED_STATUS_ERROR();
-  if (staSsid.length() > 0 || staPassword.length() > 8) {
+  if (staSsid.length() > 0 || staPassword.length() > 8)
+  {
     staConnected = wifi.connectSta(staSsid, staPassword);
-    if (staConnected) {
+    if (staConnected)
+    {
       debug(F("STA connected"));
-    } else {
+    }
+    else
+    {
       debug(F("STA connect failed"));
       // Serial.println("[ERROR] STA connect failed");
     }
-  } else {
+  }
+  else
+  {
     debug(F("STA SSID or STA password empty!"));
   }
   LED_STATUS_DISCONNECTED();
@@ -563,77 +675,91 @@ void start() {
   wsServer.begin(port, name, type, CHECK_TEXT);
   debug(F("Websocket on!"));
   Serial.print(F("[OK] "));
-  if (staConnected) {
+  if (staConnected)
+  {
     wsServer.setStaIp(wifi.staIp);
     videoUrl = String("http://") + wifi.staIp + ":9000/mjpg";
     Serial.println(wifi.staIp);
-  } else {
+  }
+  else
+  {
     videoUrl = String("http://") + wifi.apIp + ":9000/mjpg";
     Serial.println(wifi.apIp);
   }
   inited = true;
 }
 
-void debug(String msg) {
-  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_DEBUG) 
-    Serial.print(F("[CAM_D] "));
-    Serial.println(msg);
-  #endif
+void debug(String msg)
+{
+#if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_DEBUG)
+  Serial.print(F("[CAM_D] "));
+  Serial.println(msg);
+#endif
 }
 
-void info(String msg) {
-  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_INFO) 
-    Serial.print(F("[CAM_I] "));
-    Serial.println(msg);
-  #endif
+void info(String msg)
+{
+#if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_INFO)
+  Serial.print(F("[CAM_I] "));
+  Serial.println(msg);
+#endif
 }
 
-void error(String msg) {
-  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_ERROR) 
-    Serial.print(F("[CAM_E] "));
-    Serial.println(msg);
-  #endif
+void error(String msg)
+{
+#if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_ERROR)
+  Serial.print(F("[CAM_E] "));
+  Serial.println(msg);
+#endif
 }
 
-void debug(String msg, String data) {
-  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_DEBUG) 
-    Serial.print(F("[CAM_D] "));
-    Serial.print(msg);
-    Serial.println(data);
-  #endif
+void debug(String msg, String data)
+{
+#if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_DEBUG)
+  Serial.print(F("[CAM_D] "));
+  Serial.print(msg);
+  Serial.println(data);
+#endif
 }
 
-void info(String msg, String data) {
-  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_INFO) 
-    Serial.print(F("[CAM_I] "));
-    Serial.print(msg);
-    Serial.println(data);
-  #endif
+void info(String msg, String data)
+{
+#if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_INFO)
+  Serial.print(F("[CAM_I] "));
+  Serial.print(msg);
+  Serial.println(data);
+#endif
 }
 
-void error(String msg, String data) {
-  #if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_ERROR) 
-    Serial.print(F("[CAM_E] "));
-    Serial.print(msg);
-    Serial.println(data);
-  #endif
+void error(String msg, String data)
+{
+#if (DEBUG_LEVEL >= CAM_DEBUG_LEVEL_ERROR)
+  Serial.print(F("[CAM_E] "));
+  Serial.print(msg);
+  Serial.println(data);
+#endif
 }
 
-void factoryResetCheck() {
+void factoryResetCheck()
+{
   uint8_t sense = 13;
   uint8_t pull = 15;
   pinMode(sense, INPUT_PULLUP);
   pinMode(pull, OUTPUT);
   digitalWrite(pull, 0);
-  if (digitalRead(sense) == 0) {
-    for (uint8_t i=0; i<2; i++) {
+  if (digitalRead(sense) == 0)
+  {
+    for (uint8_t i = 0; i < 2; i++)
+    {
       analogWrite(CAMERA_PIN_FLASH, 1);
       delay(100);
       analogWrite(CAMERA_PIN_FLASH, 0);
       delay(100);
     }
     prefs.clear();
-    while(1);;
+    while (1)
+      ;
+    ;
   }
   pinMode(pull, INPUT);
 }
