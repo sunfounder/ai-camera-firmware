@@ -135,76 +135,76 @@
     }
   </style>
   <script>
-  let file = null;
+    let file = null;
 
-  function handleSelect() {
-    const elem = document.createElement('input');
-    elem.accept = '.bin';
-    elem.type = 'file';
-    elem.addEventListener('change', () => {
-      if (elem.files.length == 1) {
-        file = elem.files[0];
-        let fileName = file.name;
-        select = document.querySelector('.hint');
-        select.innerText = fileName;
-      }
-    });
-    elem.click();
-  }
-
-  function updateProgressBar(progress) {
-    let progressBar = document.getElementById('progress-bar');
-    let progressText = document.getElementById('progress-text');
-    progress = Math.min(100, Math.max(0, progress));
-    progress = Math.round(progress);
-    progressBar.style.width = progress + '%';
-    progressText.innerText = progress + '%';
-  }
-
-  function updateVersion() {
-    let xhr = new XMLHttpRequest();
-    xhr.open('GET', '/version');
-    xhr.send();
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState == 4 && xhr.status == 200) {
-        let version = xhr.responseText;
-        let versionElem = document.querySelector('#version');
-        versionElem.innerText = 'Current version: ' + version;
-      }
+    function handleSelect() {
+      const elem = document.createElement('input');
+      elem.accept = '.bin';
+      elem.type = 'file';
+      elem.addEventListener('change', () => {
+        if (elem.files.length == 1) {
+          file = elem.files[0];
+          let fileName = file.name;
+          select = document.querySelector('.hint');
+          select.innerText = fileName;
+        }
+      });
+      elem.click();
     }
-  }
 
-  function handleUpdate() {
-    let formData = new FormData();
-    formData.append('update', file);
-    let xhr = new XMLHttpRequest();
-    xhr.open('POST', '/update');
-    xhr.upload.addEventListener('progress', (e) => {
-      if (e.lengthComputable) {
-        let progress = e.loaded / e.total * 100;
-        updateProgressBar(progress);
-        if (progress == 100) {
-          updateSuccess();
+    function updateProgressBar(progress) {
+      let progressBar = document.getElementById('progress-bar');
+      let progressText = document.getElementById('progress-text');
+      progress = Math.min(100, Math.max(0, progress));
+      progress = Math.round(progress);
+      progressBar.style.width = progress + '%';
+      progressText.innerText = progress + '%';
+    }
+
+    function updateVersion() {
+      let xhr = new XMLHttpRequest();
+      xhr.open('GET', '/version');
+      xhr.send();
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+          let version = xhr.responseText;
+          let versionElem = document.querySelector('#version');
+          versionElem.innerText = 'Current version: ' + version;
         }
       }
-    });
-    xhr.send(formData);
-    let updateButton = document.querySelector('.upload-button');
-    updateButton.innerText = 'Updating...';
-    updateButton.style.backgroundColor = '#dfa814';
-  }
+    }
 
-  function updateSuccess() {
-    let updateButton = document.querySelector('.upload-button');
-    updateButton.innerText = 'Success';
-    updateButton.style.backgroundColor = '#01da5f';
-  }
+    function handleUpdate() {
+      let formData = new FormData();
+      formData.append('update', file);
+      let xhr = new XMLHttpRequest();
+      xhr.open('POST', '/update');
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          let progress = e.loaded / e.total * 100;
+          updateProgressBar(progress);
+          if (progress == 100) {
+            updateSuccess();
+          }
+        }
+      });
+      xhr.send(formData);
+      let updateButton = document.querySelector('.upload-button');
+      updateButton.innerText = 'Updating...';
+      updateButton.style.backgroundColor = '#dfa814';
+    }
 
-  window.onload = function () {
-    updateVersion();
-  }
+    function updateSuccess() {
+      let updateButton = document.querySelector('.upload-button');
+      updateButton.innerText = 'Success';
+      updateButton.style.backgroundColor = '#01da5f';
+    }
 
-</script>
+    window.onload = function () {
+      updateVersion();
+    }
+
+  </script>
 </head>
 
 <body>
@@ -212,7 +212,7 @@
     <div class='title'>SunFounder ESP32-Cam OTA</div>
     <div id='version'>Current version: </div>
     <form class='ota-form'>
-      <div class='select' onclick='handleSelect()'>选择文件</div>
+      <div class='select' onclick='handleSelect()'>Select File</Select></div>
       <div class='hint-box'>
         <div class='hint'>Select bin file.</div>
         <div id='progress-text'></div>
