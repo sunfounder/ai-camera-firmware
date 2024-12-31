@@ -13,7 +13,7 @@ class WiFiHelper {
 
     void begin();
     void checkSta();
-    bool connectAp(String ssid, String password); 
+    bool connectAp(String ssid, String password, int channel = 1); 
     bool connectSta(String ssid, String password);
     uint8_t scan();
     void scanClean();

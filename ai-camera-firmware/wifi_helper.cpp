@@ -50,9 +50,9 @@ bool WiFiHelper::connectSta(String ssid, String password){
   return true;
 }
 
-bool WiFiHelper::connectAp(String ssid, String password){
+bool WiFiHelper::connectAp(String ssid, String password, int channel){
   String temp = ssid + '-' + macPrefix;
-  WiFi.softAP(temp.c_str(), password.c_str());
+  WiFi.softAP(temp.c_str(), password.c_str(), channel);
   apIp = WiFi.softAPIP().toString();
   isConnected = true;
   return true;

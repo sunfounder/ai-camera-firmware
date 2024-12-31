@@ -2,7 +2,7 @@
 #define __WS_SERVER_H__
 
 #include <WebSocketsServer.h>
-#include <Preferences.h> // Save configs
+#include <Preferences.h>
 #include "wifi_helper.h"
 
 // #define DEBUG

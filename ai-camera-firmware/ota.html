@@ -26,7 +26,7 @@
     .card {
       width: 90%;
       max-width: 400px;
-      height: 260px;
+      /* height: 260px; */
       background-color: white;
       position: fixed;
       border-radius: 10px;
@@ -43,7 +43,15 @@
       margin: 10px 0;
     }
 
-    .ota-form {
+    .subtitle {
+      font-weight: bold;
+      font-size: 16px;
+      margin: 10px 10px;
+      text-align: left;
+      width: 100%;
+    }
+
+    .section {
       width: 90%;
       display: flex;
       flex-direction: column;
@@ -69,7 +77,7 @@
       height: 100%;
     }
 
-    .upload-button {
+    .button {
       width: 100%;
       height: 40px;
       background-color: #019cda;
@@ -91,6 +99,23 @@
       color: #000;
       display: flex;
       justify-content: space-between;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      height: 40px;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .switch-label {
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      flex-grow: 1;
     }
 
     .progess-box {
@@ -136,6 +161,7 @@
   </style>
   <script>
     let file = null;
+    let cameraPreview = false;
 
     function handleSelect() {
       const elem = document.createElement('input');
@@ -174,6 +200,19 @@
       }
     }
 
+    function updateHorizontalMirror() {
+      let xhr = new XMLHttpRequest();
+      xhr.open('GET', '/camera_horizontal_mirror');
+      xhr.send();
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+          let mirror = xhr.responseText;
+          let mirrorElem = document.querySelector('#camera-horizontal-mirror');
+          mirrorElem.checked = mirror == '1';
+        }
+      }
+    }
+
     function handleUpdate() {
       let formData = new FormData();
       formData.append('update', file);
@@ -200,6 +239,33 @@
       updateButton.style.backgroundColor = '#01da5f';
     }
 
+    function handleCameraPreview() {
+      let imgEl = document.querySelector('#camera');
+      let previewBtnEl = document.querySelector('#camera-preview-btn');
+      let state = !cameraPreview;
+      cameraPreview = state;
+      if (state == 1) {
+        let hostname = window.location.hostname;
+        let url = 'http://' + hostname + ':9000/mjpg';
+        imgEl.src = url;
+        imgEl.style.display = 'block';
+        previewBtnEl.innerText = 'Hide Preview';
+      } else {
+        imgEl.src = 'camera.jpg';
+        imgEl.style.display = 'none';
+        previewBtnEl.innerText = 'Show Preview';
+      }
+    }
+
+    function handleCameraHorizontalMirror(mirror) {
+      console.log(mirror);
+      let xhr = new XMLHttpRequest();
+      xhr.setRequestHeader('Content-Type', 'x-www-form-urlencoded');
+      xhr.send('mirror=' + mirror);
+      xhr.open('POST', '/camera_horizontal_mirror');
+      xhr.send();
+    }
+
     window.onload = function () {
       updateVersion();
     }
@@ -209,9 +275,10 @@
 
 <body>
   <div class='card'>
-    <div class='title'>SunFounder ESP32-Cam OTA</div>
-    <div id='version'>Current version: </div>
-    <form class='ota-form'>
+    <div class='title'>SunFounder ESP32-Cam Settings</div>
+    <form class='ota-form section'>
+    <div class='subtitle'>OTA</div>
+    <div class='hint-box' id='version'>Current version: </div>
       <div class='select' onclick='handleSelect()'>Select File</Select></div>
       <div class='hint-box'>
         <div class='hint'>Select bin file.</div>
@@ -220,8 +287,21 @@
       <div class='progress-container'>
         <div id='progress-bar'></div>
       </div>
-      <div class='upload-button' onclick='handleUpdate()'>Update</div>
+      <div class='button upload-button' onclick='handleUpdate()'>Update</div>
     </form>
+    <div class='camera section'>
+      <div class='subtitle'>Camera</div>
+      <image id='camera'src='camera.jpg' alt='Camera' width='100%' height='100%' style="display: none;"></image>
+      <div class='button' id='camera-preview-btn' onclick='handleCameraPreview()'>Show Preview</div>
+      <div class='switch'>
+        <label class='switch-label'>Horizontal Mirror</label>
+        <input type='checkbox' id='camera-horizontal-mirror' onchange='handleCameraHorizontalMirror(this.checked)'><span class='slider round'></span>
+      </div>
+      <div class='switch'>
+        <label class='switch-label'>Vertical flip</label>
+        <input type='checkbox' id='camera-vertial-flip' onchange='handleCameraHorizontalMirror(this.checked)'><span class='slider round'></span>
+      </div>
+    </div>
   </div>
 </body>
 

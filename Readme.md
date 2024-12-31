@@ -77,6 +77,12 @@ SET+APSSIDSunFounder
 SET+APPSKsunfounder
 ```
 
+`SET+APCHN<channel>`: set AP Channel
+
+```
+SET+APCHN1
+```
+
 `SET+STASSID<ssid>`: set STA SSID
 
 ```
@@ -119,9 +125,22 @@ SET+RSTSTA
 SET+RSTCFG
 ```
 
-## OTA
+## Setting Page
 
-You can update the firmware over the air. To do this, connect to the AP of the module, go to <http://192.168.4.1>. On the webpage, choose the firmware file, and click upload. The module will update the firmware and restart.
+You can access setting page under <http://192.168.4.1>
+
+### Setting page API
+
+- `GET /`: Get setting page
+- `GET /version`: Get firmware version
+- `POST /set_ap_channel`: Set AP channel `channel` 1-13
+- `POST /restart_ap`: Restart AP
+- `POST /camera_horizontal_mirror`: Set camera horizontal mirror `mirror` 0-1
+- `POST /camera_vertical_flip`: Set camera vertical flip `flip` 0-1
+- `POST /camera_brightness`: Set camera brightness `brightness` 0-100
+- `POST /camera_contrast`: Set camera contrast `contrast` 0-100
+- `POST /camera_saturation`: Set camera saturation `saturation` 0-100
+- `POST /camera_sharpness`: Set camera sharpness `sharpness` 0-100
 
 ## Data
 

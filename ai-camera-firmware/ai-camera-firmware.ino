@@ -33,7 +33,8 @@
 #include <Preferences.h>   // Save configs
 #include <ESPmDNS.h>       // mDNS
 
-#include "ota_server.hpp" // OTA
+#include "setting_server.hpp" // OTA
+#include "defaults.h"     // Default settings
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/ResetReason/ResetReason.ino
 
 /* Select development board */
@@ -47,6 +48,7 @@ String name;
 String type;
 String apSsid;
 String apPassword;
+uint8_t apChannel;
 String staSsid;
 String staPassword;
 
@@ -82,11 +84,6 @@ extern String videoTemplate;
 #define SERIAL_TIMEOUT 100 // timeout 100ms
 #define CHAR_TIMEOUT 5     // char timeout (ms)
 
-/* Set default AP SSID, AP Password, Name, Type*/
-#define DEFAULT_AP_SSID "AI Camera"
-#define DEFAULT_AP_PASSWORD "12345678"
-#define DEFAULT_NAME "AI Camera"
-#define DEFAULT_TYPE "AI Camera"
 
 /* ----------------------- Global Variables -------------------------- */
 WiFiHelper wifi = WiFiHelper();
@@ -101,7 +98,7 @@ bool inited = false; // For default config settings. All settings send befor ini
 
 String rxBuf = "";
 
-bool otaStarted = false;
+bool settingStarted = false;
 
 /* ----------------------- Functions -------------------------------- */
 #define IsStartWith(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
@@ -150,9 +147,9 @@ void setup()
   pinMode(CAMERA_PIN_FLASH, OUTPUT); // init flash lamp
   digitalWrite(CAMERA_PIN_FLASH, 0); // 0:turn off flash lamp
 
-  wifi.connectAp(apSsid, apPassword);
+  wifi.connectAp(apSsid, apPassword, apChannel);
   mDNSInit();
-  otaBegin(VERSION);
+  settingBegin(VERSION);
 
   // Check if factory reset needed
   factoryResetCheck();
@@ -169,7 +166,7 @@ void loop()
   ledStatusHandler();
   wsServerCameraHandler();
   serialReceivedHandler();
-  otaHandler();
+  settingHandler();
   delay(6);
 }
 
@@ -191,10 +188,10 @@ void wsServerCameraHandler()
   }
 }
 
-void otaHandler()
+void settingHandler()
 {
-  if (otaStarted)
-    otaLoop();
+  if (settingStarted)
+    settingLoop();
 }
 
 void serialReceivedHandler()
@@ -310,6 +307,7 @@ void readConfig()
   type = prefs.getString("type", DEFAULT_TYPE);
   apSsid = prefs.getString("apSsid", DEFAULT_AP_SSID);
   apPassword = prefs.getString("apPassword", DEFAULT_AP_PASSWORD);
+  apChannel = prefs.getInt("apChannel", 1);
   staSsid = prefs.getString("staSsid", "");
   staPassword = prefs.getString("staPassword", "");
   debug("readConfig");
@@ -317,6 +315,7 @@ void readConfig()
   debug("type: ", type);
   debug("apSsid: ", apSsid);
   debug("apPassword: ", apPassword);
+  debug("apChannel: ", String(apChannel));
   debug("staSsid: ", staSsid);
   debug("staPassword: ", staPassword);
 }
@@ -341,11 +340,11 @@ void mDNSInit()
 {
   if (MDNS.begin(name))
   { // Set mDNS
-    otaStarted = true;
+    settingStarted = true;
   }
   else
   {
-    otaStarted = false;
+    settingStarted = false;
     Serial.println(F("Warning: Error setting up MDNS responder!"));
   }
 }
@@ -476,6 +475,27 @@ void handleSet(String cmd)
       Serial.println("[OK] AP already set");
     }
     return;
+  }
+  // AP Channel
+  else if (_5_chars_cmd == "APCHN")
+  {
+    temp = cmd.substring(5);
+    int channel = temp.toInt();
+    if (channel != apChannel || inited == true)
+    {
+      if (channel < 1 || channel > 13)
+      {
+        Serial.println("[ERROR] AP channel out of range");
+        return;
+      }
+      apChannel = channel;
+      debug("Set AP channel: ", String(apChannel));
+      prefs.putInt("apChannel", apChannel);
+      Serial.println("[OK]");
+    }
+    else {
+      Serial.println("[OK] AP channel already set");
+    }
   }
 
   // ------------ 6 characters command  ------------
