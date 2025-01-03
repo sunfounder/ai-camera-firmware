@@ -9,10 +9,11 @@
 class WiFiHelper {
   public:
     WiFiHelper();
-    bool connect(int mode, String ssid, String password);
+    bool connect(int mode, String ssid, String password, int apChannel = 1);
     String ip = "";
     String ssid = "";
     String password = "";
+    int apChannel = 1;
     bool is_connected = false;
     void check_status();
 

@@ -12,14 +12,14 @@
     - ArduinoJson (by Benoit Blanchon)
     - WebSockets (by Markus Sattler) (Links2004)
 
-  Version: 1.4.0
+  Version: 1.4.1
     -- https://github.com/sunfounder/ai-camera-firmware
   
   Author: Sunfounder
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.4.0"
+#define VERSION "1.4.1"
 
 #include "led_status.hpp"
 #include "who_camera.h"
@@ -31,8 +31,9 @@
 #include "soc/rtc_cntl_reg.h"
 #include "esp32/rom/rtc.h" // rst reason 
 #include <ESPmDNS.h> // mDNS
+#include <Preferences.h>
 
-#include "ota_server.hpp" // OTA
+#include "settings_server.hpp"
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/ResetReason/ResetReason.ino
 
 /* Select development board */
@@ -45,6 +46,7 @@
 int mode = AP;  // STA or AP
 String ssid = "aiCAM";
 String password = "12345678";
+int apChannel = 1;
 
 // int mode = STA;  // STA or AP
 // String ssid = "xxxxxx";
@@ -91,7 +93,6 @@ extern String videoUrl;
 /* ----------------------- Global Variables -------------------------- */
 String WIFI_MODES[3] = {"None", "STA", "AP"};
 WiFiHelper wifi = WiFiHelper();
-
 WS_Server ws_server = WS_Server();
 
 static QueueHandle_t xQueueHttpFrame = NULL;
@@ -99,7 +100,7 @@ bool is_camera_started = false;
 
 String rxBuf = "";
 
-bool otaStarted = false;
+bool settingsStarted = false;
 
 /* ----------------------- Functions -------------------------------- */
 #define IsStartWith(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
@@ -124,6 +125,12 @@ void setup() {
 
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
+  // Read preferences
+  Preferences preferences;
+  preferences.begin("config", false);
+  apChannel = preferences.getInt("apChannel", 1);
+
+  preferences.end();
   led_init(CAMERA_PIN_LED); //init status_led 
   LED_STATUS_DISCONNECTED(); //turn on status_led
   pinMode(CAMERA_PIN_FLASH, OUTPUT); // init flash lamp
@@ -149,7 +156,7 @@ void loop() {
   led_status_handler();
   ws_server_camera_handler();
   serial_received_handler();
-  otaHandler();
+  settingsHandler();
   delay(6);
 }
 
@@ -167,8 +174,8 @@ void ws_server_camera_handler() {
   } 
 } 
 
-void otaHandler() {
-  if (otaStarted) otaLoop();
+void settingsHandler() {
+  if (settingsStarted) settingsLoop();
 }
 
 void serial_received_handler() {
@@ -271,9 +278,9 @@ void camera_init(){
 
 void mDNSInit() {
   if (MDNS.begin(name)) { // Set mDNS
-    otaStarted = true;
+    settingsStarted = true;
   } else {
-    otaStarted = false;
+    settingsStarted = false;
     Serial.println(F("Warning: Error setting up MDNS responder!"));
   }
 }
@@ -428,14 +435,14 @@ void start() {
   } else if (port == 0) {
     error("Please set port");
   } else{
-    bool result = wifi.connect(mode, ssid, password);
+    bool result = wifi.connect(mode, ssid, password, apChannel);
     if (!result) {
       error("TIMEOUT");
       LED_STATUS_ERROOR();
     } else {
       LED_STATUS_DISCONNECTED();
       mDNSInit();
-      otaBegin(VERSION);
+      settingsBegin(VERSION, apChannel);
       ws_server.close();
       ws_server.begin(port, name, type, CHECK_TEXT);
       debug("Websocket on!");

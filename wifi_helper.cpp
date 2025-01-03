@@ -35,15 +35,16 @@ bool WiFiHelper::connect_STA(){
 }
 
 bool WiFiHelper::connect_AP(){
-  WiFi.softAP(ssid.c_str(), password.c_str());
+  WiFi.softAP(ssid.c_str(), password.c_str(), apChannel);
   ip = WiFi.softAPIP().toString();
   return true;
 }
 
-bool WiFiHelper::connect(int mode, String _ssid, String _password){
+bool WiFiHelper::connect(int mode, String _ssid, String _password, int _apChannel){
   bool ret;
   ssid = _ssid;
   password = _password;
+  apChannel = _apChannel;
 
   #ifdef DEBUG
   Serial.print("[DEBUG] Mode:");
