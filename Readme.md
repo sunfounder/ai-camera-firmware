@@ -4,23 +4,23 @@ This is a firmware read convert uart command and create a websocket server. It's
 
 ## Dependencies
 
- - WebSockets by Markus Sattler
- - ArduinoJson
+ - WebSockets (by Markus Sattler) (Links2004)
+ - ArduinoJson (by Benoit Blanchon)
 
 ## Flash Setting
-- Pay attention to enable PSRAM, select "Huge APP" Partition Scheme
+  Pay attention to enable PSRAM, select "Huge APP" Partition Scheme
 
-    Board: "ESP32 Dev Module"
-    Upload Speed: "921600"
-    CPU Frequency: "240MHz (WiFi/BT)"
-    Flash Frequency: "80MHz"
-    Flash Mode: "QIO"
-    Flash Size: "4MB (32Mb)"
-    Partition Scheme: "Huge APP (3MB No OTA/1MB SPIFFS)"
-    Core Debug Level: "None"
-    PSRAM: "Enabled"
-    Arduino Runs On: "Core 1"
-    Events Run On: "Core 1"
+- Board: "ESP32 Dev Module"
+- Upload Speed: "921600"
+- CPU Frequency: "240MHz (WiFi/BT)"
+- Flash Frequency: "80MHz"
+- Flash Mode: "QIO"
+- Flash Size: "4MB (32Mb)"
+- Partition Scheme: "Minimal SPIFFS (1.9MB APP  with OTA/190KB SPIFFS)"
+- Core Debug Level: "None"
+- PSRAM: "Enabled"
+- Arduino Runs On: "Core 1"
+- Events Run On: "Core 1"
 
 ## Commands
 
