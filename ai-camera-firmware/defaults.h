@@ -1,10 +1,41 @@
-#ifndef __DEFAULTS_H__
-#define __DEFAULTS_H__
+#pragma once
+
+#define SETTING_PREFERENCES "config"
 
 /* Set default AP SSID, AP Password, Name, Type*/
-#define DEFAULT_AP_SSID "AI Camera"
-#define DEFAULT_AP_PASSWORD "12345678"
 #define DEFAULT_NAME "AI Camera"
 #define DEFAULT_TYPE "AI Camera"
+#define DEFAULT_AP_SSID "AI Camera"
+#define DEFAULT_AP_PASSWORD "12345678"
+#define DEFAULT_AP_CHANNEL 1
+#define DEFAULT_STA_SSID ""
+#define DEFAULT_STA_PASSWORD ""
+#define DEFAULT_CAMERA_HORIZONTAL_MIRROR 1
+#define DEFAULT_CAMERA_VERTICAL_FLIP 1
+#define DEFAULT_CAMERA_BRIGHTNESS 1
+#define DEFAULT_CAMERA_CONTRAST 1
+#define DEFAULT_CAMERA_SATURATION 1
+#define DEFAULT_CAMERA_SHARPNESS 1
 
-#endif // __DEFAULTS_H__
+/* Set the Debug Level */
+#define DEBUG_LEVEL CAM_DEBUG_LEVEL_DEBUG
+#define CAM_DEBUG_LEVEL_OFF 0
+#define CAM_DEBUG_LEVEL_ERROR 1
+#define CAM_DEBUG_LEVEL_INFO 2
+#define CAM_DEBUG_LEVEL_DEBUG 3
+#define CAM_DEBUG_LEVEL_ALL 4
+
+/* Set the camera resolution */
+// #define FRAMESIZE FRAMESIZE_QVGA // 320x240
+// #define FRAMESIZE FRAMESIZE_HVGA // 480x320
+#define FRAMESIZE FRAMESIZE_VGA // 640x480
+// #define FRAMESIZE FRAMESIZE_SVGA // 800x600
+// #define FRAMESIZE FRAMESIZE_XGA // 1024x768
+// #define FRAMESIZE FRAMESIZE_HD // 1280x720
+
+/* Set size of fb_count */
+#define FB_COUNT 2
+
+/* Set the SERIAL_TIMEOUT (ms) */
+#define SERIAL_TIMEOUT 100 // timeout 100ms
+#define CHAR_TIMEOUT 5     // char timeout (ms)

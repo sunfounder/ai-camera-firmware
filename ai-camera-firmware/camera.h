@@ -1,10 +1,13 @@
 #pragma once
 
+#include <Arduino.h>
 #include "esp_camera.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
+
+#include "settings.h"
 
 // #define XCLK_FREQ_HZ 20000000
 // #define XCLK_FREQ_HZ 15000000
@@ -14,9 +17,6 @@
 #define JPEG_QUALITY 10
 // #define JPEG_QUALITY 12
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 /**
  * @brief Initialize camera
  *
@@ -55,6 +55,7 @@ extern "C" {
  * @param fb_count     Number of frame buffers to be allocated. If more than
  * one, then each frame will be acquired (double speed)
  */
+
 void register_camera(const pixformat_t pixel_fromat,
                      const framesize_t frame_size, const uint8_t fb_count,
                      const QueueHandle_t frame_o, const int vflip, const int hflip,
@@ -64,6 +65,3 @@ void register_camera(const pixformat_t pixel_fromat,
                      const int href, const int sda, const int scl,
                      const int pwdn, const int reset);
 
-#ifdef __cplusplus
-}
-#endif

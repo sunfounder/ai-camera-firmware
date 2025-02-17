@@ -1,9 +1,9 @@
-#include "who_camera.h"
+#include "camera.h"
 
 #include "esp_log.h"
 #include "esp_system.h"
 
-static const char *TAG = "who_camera";
+static const char *TAG = "camera";
 static QueueHandle_t xQueueFrameO = NULL;
 
 static void task_process_handler(void *arg) {
@@ -76,15 +76,21 @@ void register_camera(const pixformat_t pixel_fromat,
   }
 
   sensor_t *s = esp_camera_sensor_get();
-  s->set_vflip(s, vflip);  // flip it back
-  s->set_hmirror(s, hflip);
-  // initial sensors are flipped vertically and colors are a bit saturated
-  if (s->id.PID == OV3660_PID) {
-    s->set_brightness(s, 1);   // up the blightness just a bit
-    s->set_saturation(s, -2);  // lower the saturation
-  }
+  // s->set_vflip(s, vflip);  // flip it back
+  // s->set_hmirror(s, hflip);
+  // // initial sensors are flipped vertically and colors are a bit saturated
+  // if (s->id.PID == OV3660_PID) {
+  //   s->set_brightness(s, 1);   // up the blightness just a bit
+  //   s->set_saturation(s, -2);  // lower the saturation
+  // }
+  s->set_hmirror(s, settingsGetCameraHorizontalMirror());
+  s->set_vflip(s, settingsGetCameraVerticalFlip());
+  s->set_brightness(s, settingsGetCameraBrightness());
+  s->set_saturation(s, settingsGetCameraSaturation());
+  s->set_sharpness(s, settingsGetCameraSharpness());
+  s->set_contrast(s, settingsGetCameraContrast());
+
 
   xQueueFrameO = frame_o;
-  xTaskCreatePinnedToCore(task_process_handler, TAG, 1 * 1024, NULL, 5, NULL,
-                          1);
+  xTaskCreatePinnedToCore(task_process_handler, TAG, 1 * 1024, NULL, 5, NULL, 1);
 }

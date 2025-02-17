@@ -1,30 +1,28 @@
-#ifndef __WIFI_HELPER_H__
-#define __WIFI_HELPER_H__
+#pragma once
 
 #include <WiFi.h>
+#include <ESPmDNS.h>       // mDNS
 
-class WiFiHelper {
-  public:
-    WiFiHelper();
-    String apIp = "";
-    String staIp = "";
-    bool staConnected = false;
-    bool isConnected = false;
+#include "log.h"
 
-    void begin();
-    void checkSta();
-    bool connectAp(String ssid, String password, int channel = 1); 
-    bool connectSta(String ssid, String password);
-    uint8_t scan();
-    void scanClean();
-    String getScanedSSID(uint8_t index);
-    int32_t getScanedRSSI(uint8_t index);
-    uint8_t getScanedSecure(uint8_t index);
-    int32_t getScanedChannel(uint8_t index);
-    String getScanedBSSID(uint8_t index);
-  private:
-    String macAddress;
-    String macPrefix;
-};
+void wifiBegin();
+void wifiCheckSta();
+bool wifiConnectAp(String ssid, String password, int channel = 1); 
+bool wifiConnectSta(String ssid, String password);
+int wifiSetHostname(String hostname);
+uint8_t wifiScan();
+void wifiScanClean();
+String wifiGetScannedSSID(uint8_t index);
+int32_t wifiGetScannedRSSI(uint8_t index);
+uint8_t wifiGetScannedSecure(uint8_t index);
+int32_t wifiGetScannedChannel(uint8_t index);
+String wifiGetScannedBSSID(uint8_t index);
+String wifiGetMacPrefix();
+String wifiGetMacAddress();
 
-#endif
+String wifiGetStaIp();
+String wifiGetApIp();
+String wifiGetMacAddress();
+String wifiGetMacPrefix();
+bool wifiIsStaConnected();
+bool wifiIsConnected();

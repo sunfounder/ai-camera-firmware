@@ -1,11 +1,11 @@
-#include "camera_server.hpp"
+#include "camera_server.h"
 
 #include "esp_http_server.h"
 #include "esp_timer.h"
 #include "fb_gfx.h"
 #include "img_converters.h"
 #include "sdkconfig.h"
-#include "who_camera.h"
+#include "camera.h"
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
 #include "esp32-hal-log.h"

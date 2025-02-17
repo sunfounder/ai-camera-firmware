@@ -1,7 +1,8 @@
 #include "ws_server.h"
 #include <ArduinoJson.h>
-#include "led_status.hpp"
+#include "led_status.h"
 #include "Ticker.h"
+#include "settings.h"
 
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t* payload, size_t length);
 
@@ -15,7 +16,6 @@ String wsType = "";
 String wsCheck= "SC";
 String videoUrl = "";
 String videoTemplate = "";
-String staIp = "";
 
 Ticker pingPongTimer; // timer for checing ping_pong
 bool isPingPingOK = true;
@@ -85,97 +85,84 @@ bool WS_Server::isConnected() {
   return wsConnected;
 }
 
-void WS_Server::setStaIp(String ip) {
-  staIp = ip;
-}
-
 void handleConfig(String payload) {
   // Serial.println("SET+ config from websocket");
   DynamicJsonDocument config(WS_BUFFER_SIZE);
   DynamicJsonDocument result(WS_BUFFER_SIZE);
   deserializeJson(config, payload);
 
-  Preferences prefs;
-  prefs.begin("config");
   result["state"] = F("ERROR");
   JsonArray errors = result.createNestedArray("errors");
 
   // Get name
   if (config.containsKey("name")) {
     String name = config["name"].as<String>();
-    prefs.putString("name", name.c_str());
+    settingsSetName(name);
     result["state"] = F("OK");
-    // Serial.print("set name: ");Serial.println(name);
   }
   if (config.containsKey("type")) {
     String type = config["type"].as<String>();
-    prefs.putString("type", type.c_str());
+    settingsSetType(type);
     result["state"] = F("OK");
-    // Serial.print("set type: ");Serial.println(type);
   }
   if (config.containsKey("apSsid")) {
     String ap_ssid = config["apSsid"].as<String>();
-    prefs.putString("apSsid", ap_ssid.c_str());
-    String tmp = prefs.getString("apSsid");
+    settingsSetApSsid(ap_ssid);
     result["state"] = F("OK");
-    // Serial.print("set apSsid: ");Serial.println(ap_ssid);
   }
   if (config.containsKey("apPassword")) {
     String ap_password = config["apPassword"].as<String>();
-    prefs.putString("apPassword", ap_password.c_str());
+    settingsSetApPassword(ap_password);
     result["state"] = F("OK");
-    // Serial.print("set apPassword: ");Serial.println(ap_password);
   }
   if (config.containsKey("staSsid")) {
     String wifi_ssid = config["staSsid"].as<String>();
-    prefs.putString("staSsid", wifi_ssid.c_str());
+    settingsSetStaSsid(wifi_ssid);
     result["state"] = F("OK");
-    // Serial.print("set staSsid: ");Serial.println(wifi_ssid);
   }
   if (config.containsKey("staPassword")) {
     String wifi_password = config["staPassword"].as<String>();
-    prefs.putString("staPassword", wifi_password.c_str());
+    settingsSetStaPassword(wifi_password);
     result["state"] = F("OK");
-    // Serial.print("set staPassword: ");Serial.println(wifi_password);
   }
   if (config.containsKey("command")) {
     String command = config["command"].as<String>();
     if (command == "restart-sta") {
       // Serial.println("restart-sta");
-      WiFiHelper wifi;
-      String staSsid = prefs.getString("staSsid");
-      String staPassword = prefs.getString("staPassword");
-      if (staSsid.length() > 0 && staPassword.length() > 0) {
-        bool r = wifi.connectSta(staSsid, staPassword);
-        if (r) {
-          result["state"] = F("OK");
-          result["ip"] = wifi.staIp;
-          // Serial.print("STA IP: ");Serial.println(result["ip"].as<String>());
-          staIp = wifi.staIp;
-        } else {
-          result["state"] = F("ERROR");
-          errors.add(F("STA_CONNECT_ERROR"));
-        }
+      String staSsid = settingsGetStaSsid();
+      String staPassword = settingsGetStaPassword();
+      if (staSsid.length() <= 0 || staSsid.length() > 32) {
+        result["state"] = F("ERROR");
+        errors.add(F("STA_SSID_INVALID"));
+        return;
+      }
+      if (staPassword.length() < 8 || staPassword.length() > 64) {
+        result["state"] = F("ERROR");
+        errors.add(F("STA_PASSWORD_INVALID"));
+        return;
+      }
+      bool r = wifiConnectSta(staSsid, staPassword);
+      if (r) {
+        result["state"] = F("OK");
+        result["ip"] = wifiGetStaIp();
       } else {
         result["state"] = F("ERROR");
-        errors.add(F("STA_NOT_CONFIGURED"));
+        errors.add(F("STA_CONNECT_ERROR"));
       }
     } else if (command == "scan-wifi") {
-      WiFiHelper wifi;
-      uint8_t count = wifi.scan();
+      uint8_t count = wifiScan();
       result["state"] = F("OK");
       JsonArray networks = result.createNestedArray("networks");
       for (uint8_t i=0; i<count; i++) {
         JsonObject network = networks.createNestedObject();
-        network["ssid"] = wifi.getScanedSSID(i);
-        network["rssi"] = wifi.getScanedRSSI(i);
-        network["secure"] = wifi.getScanedSecure(i);
-        network["channel"] = wifi.getScanedChannel(i);
-        network["bssid"] = wifi.getScanedBSSID(i);
+        network["ssid"] = wifiGetScannedSSID(i);
+        network["rssi"] = wifiGetScannedRSSI(i);
+        network["secure"] = wifiGetScannedSecure(i);
+        network["channel"] = wifiGetScannedChannel(i);
+        network["bssid"] = wifiGetScannedBSSID(i);
       }
     } else if (command == "scan-clear") {
-      WiFiHelper wifi;
-      wifi.scanClean();
+      wifiScanClean();
       result["state"] = F("OK");
     } else {
       result["state"] = F("ERROR");
@@ -184,7 +171,6 @@ void handleConfig(String payload) {
   }
   String result_str;
   serializeJson(result, result_str);
-  // Serial.print("result_str: ");Serial.println(result_str);
   ws.sendTXT(client_num, result_str);
 }
 
@@ -260,13 +246,14 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t * payload, size_t lengt
       #endif
       Serial.print("[CONNECTED] ");Serial.println(remoteIp.toString());
       // Send check_info  to client
-      String check_info = "{\"Name\":\"" + wsName
-                        + "\",\"Type\":\"" + wsType
-                        + "\",\"Check\":\"" + wsCheck
-                        + "\",\"video\":\"" + videoUrl
-                        + "\",\"StaIp\":\"" + staIp
-                        + "\",\"VideoTemplate\":\"" + videoTemplate
-                        + "\"}";
+      String check_info = String("{") +
+        "\"Name\":\"" + wsName + "\"," +
+        "\"Type\":\"" + wsType + "\"," +
+        "\"Check\":\"" + wsCheck + "\"," +
+        "\"video\":\"" + videoUrl + "\"," +
+        "\"StaIp\":\"" + wifiGetStaIp() + "\"," +
+        "\"VideoTemplate\":\"" + videoTemplate + "\""+
+      "}";
       // ws.sendTXT(client_num, check_info);
       delay(100);
       ws.sendTXT(client_num, check_info);

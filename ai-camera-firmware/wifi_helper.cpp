@@ -1,16 +1,22 @@
 #include "wifi_helper.h"
 
-WiFiHelper::WiFiHelper() {}
+String apIp = "";
+String staIp = "";
+String macPrefix = "";
+String macAddress = "";
+bool staConnected = false;
+bool isConnected = false;
 
-void WiFiHelper::begin(){
+void wifiBegin(){
   WiFi.mode(WIFI_AP_STA);
+  WiFi.begin();
   macAddress = WiFi.macAddress();
   macPrefix = macAddress;
   macPrefix.replace(":", "");
   macPrefix = macPrefix.substring(6, 12);
 }
 
-bool WiFiHelper::connectSta(String ssid, String password){
+bool wifiConnectSta(String ssid, String password){
 
   #ifdef DEBUG
   Serial.println(F("Connecting to WiFi ..."));
@@ -50,7 +56,7 @@ bool WiFiHelper::connectSta(String ssid, String password){
   return true;
 }
 
-bool WiFiHelper::connectAp(String ssid, String password, int channel){
+bool wifiConnectAp(String ssid, String password, int channel){
   String temp = ssid + '-' + macPrefix;
   WiFi.softAP(temp.c_str(), password.c_str(), channel);
   apIp = WiFi.softAPIP().toString();
@@ -58,27 +64,31 @@ bool WiFiHelper::connectAp(String ssid, String password, int channel){
   return true;
 }
 
-uint8_t WiFiHelper::scan() { return WiFi.scanNetworks(); }
+int wifiSetHostname(String hostname){
+  return MDNS.begin(hostname);
+}
 
-void WiFiHelper::scanClean() { WiFi.scanDelete(); }
+uint8_t wifiScan() { return WiFi.scanNetworks(); }
 
-String WiFiHelper::getScanedSSID(uint8_t index) { return WiFi.SSID(index); }
+void wifiScanClean() { WiFi.scanDelete(); }
 
-int32_t WiFiHelper::getScanedRSSI(uint8_t index) { return WiFi.RSSI(index); }
+String wifiGetScannedSSID(uint8_t index) { return WiFi.SSID(index); }
 
-uint8_t WiFiHelper::getScanedSecure(uint8_t index) {
+int32_t wifiGetScannedRSSI(uint8_t index) { return WiFi.RSSI(index); }
+
+uint8_t wifiGetScannedSecure(uint8_t index) {
   return WiFi.encryptionType(index);
 }
 
-int32_t WiFiHelper::getScanedChannel(uint8_t index) {
+int32_t wifiGetScannedChannel(uint8_t index) {
   return WiFi.channel(index);
 }
 
-String WiFiHelper::getScanedBSSID(uint8_t index) {
+String wifiGetScannedBSSID(uint8_t index) {
   return WiFi.BSSIDstr(index);
 }
 
-void WiFiHelper::checkSta(){
+void wifiCheckSta(){
   if (WiFi.status() != WL_CONNECTED) {
     if (isConnected == true) {
       isConnected = false;
@@ -87,4 +97,28 @@ void WiFiHelper::checkSta(){
       Serial.println("[DISCONNECTED] wifi disconnected");
     }
   }
+}
+
+String wifiGetStaIp(){
+  return staIp;
+}
+
+String wifiGetApIp(){
+  return apIp;
+}
+
+String wifiGetMacPrefix(){
+  return macPrefix;
+}
+
+String wifiGetMacAddress(){
+  return macAddress;
+}
+
+bool wifiIsStaConnected(){
+  return staConnected;
+}
+
+bool wifiIsConnected(){
+  return isConnected;
 }

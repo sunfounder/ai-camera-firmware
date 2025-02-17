@@ -1,29 +1,29 @@
-#include "led_status.hpp"
+#include "led_status.h"
 
 double startMillis_led = 0;
 uint8_t led_switch = 0;
 uint8_t led_pin = LED_PIN;
 uint8_t led_status = LED_OFF;
 
-void led_init(uint8_t _pin) {
+void ledBegin(uint8_t _pin) {
 	led_pin = _pin;
   pinMode(led_pin, OUTPUT);  // Set LED pin as output
   digitalWrite(led_pin, HIGH);  // 1:turn off LED
 }
 
-void led_off() {
+void ledOff() {
   led_status = LED_OFF;
 }
 
-void led_on() {
+void ledOn() {
   led_status = LED_ON;
 }
 
-void led_slow_blink() {
+void ledSlowBlink() {
   led_status = LED_SLOW_BLINK;
 }
 
-void led_fast_blink() {
+void ledFastBlink() {
   led_status = LED_FAST_BLINK;
 }
 
