@@ -11,7 +11,7 @@ ESP32-Cam 的 Web 服务器提供了多种 API 接口，用于配置和管理设
 - **Description**: 返回设备的主页 HTML。
 - **Response**:
     ```html
-    <!doctype html><html lang=en><head><meta charset=UTF-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><title>ESP32-Cam OTA</title><style>...</style><script>...</script></head><body>...</body></html>
+    <!doctype html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ESP32-Cam OTA</title><style>...</style><script>...</script></head><body>...</body></html>
     ```
 
 ### 2. 获取设置
@@ -36,7 +36,9 @@ ESP32-Cam 的 Web 服务器提供了多种 API 接口，用于配置和管理设
       "cameraSaturation": 1.0,
       "cameraSharpness": 1.0,
       "macAddress": "xx:xx:xx:xx:xx:xx",
-      "macPrefix": "xx:xx:xx"
+      "macPrefix": "xx:xx:xx",
+      "staConnected": "true",
+      "ipAddress": "192.168.1.100"
     }
     ```
 
@@ -115,7 +117,7 @@ ESP32-Cam 的 Web 服务器提供了多种 API 接口，用于配置和管理设
 - **Method**: `POST`
 - **Description**: 设置相机的亮度。
 - **Request Parameter**:
-    - `cameraBrightness` (float): 亮度值。
+    - `cameraBrightness` (int): 亮度值（范围 0-100）。
 - **Response**:
     - `200 OK`: 设置成功。
     - `400 Bad Request`: 请求参数错误。
@@ -125,7 +127,7 @@ ESP32-Cam 的 Web 服务器提供了多种 API 接口，用于配置和管理设
 - **Method**: `POST`
 - **Description**: 设置相机的对比度。
 - **Request Parameter**:
-    - `cameraContrast` (float): 对比度值。
+    - `cameraContrast` (int): 对比度值（范围 -2-2）。
 - **Response**:
     - `200 OK`: 设置成功。
     - `400 Bad Request`: 请求参数错误。
@@ -135,7 +137,7 @@ ESP32-Cam 的 Web 服务器提供了多种 API 接口，用于配置和管理设
 - **Method**: `POST`
 - **Description**: 设置相机的饱和度。
 - **Request Parameter**:
-    - `cameraSaturation` (float): 饱和度值。
+    - `cameraSaturation` (int): 饱和度值（范围 -2-2）。
 - **Response**:
     - `200 OK`: 设置成功。
     - `400 Bad Request`: 请求参数错误。
@@ -145,7 +147,7 @@ ESP32-Cam 的 Web 服务器提供了多种 API 接口，用于配置和管理设
 - **Method**: `POST`
 - **Description**: 设置相机的锐度。
 - **Request Parameter**:
-    - `cameraSharpness` (float): 锐度值。
+    - `cameraSharpness` (int): 锐度值（范围 -2-2）。
 - **Response**:
     - `200 OK`: 设置成功。
     - `400 Bad Request`: 请求参数错误。
@@ -198,3 +200,10 @@ ESP32-Cam 的 Web 服务器提供了多种 API 接口，用于配置和管理设
     - `200 OK`: 连接成功，返回设备的 STA IP 地址。
     - `400 Bad Request`: 请求参数错误。
     - `400 Bad Request`: Wi-Fi 连接失败。
+
+### 18. 重启设备
+- **URL**: `/restart`
+- **Method**: `POST`
+- **Description**: 重启设备。
+- **Response**:
+    - `200 OK`: 重启成功。

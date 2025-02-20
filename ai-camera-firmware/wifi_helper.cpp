@@ -1,5 +1,7 @@
 #include "wifi_helper.h"
 
+#define DEBUG
+
 String apIp = "";
 String staIp = "";
 String macPrefix = "";

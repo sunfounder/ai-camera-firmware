@@ -81,30 +81,26 @@ void handleGetIndex() {
   setCrossOriginHeaders();
   server.sendHeader("Content-Encoding", "gzip");
   server.sendHeader("Connection", "close");
-  server.send_P(200, "text/html", index_html_gz, index_html_gz_len);
+  server.send_P(200, "text/html", (const char*)index_html_gz, index_html_gz_len);
 }
-
 void handleGetJs() {
   setCrossOriginHeaders();
   server.sendHeader("Content-Encoding", "gzip");
   server.sendHeader("Connection", "close");
-  server.send_P(200, "text/javascript", main_ee1290ab_js_gz, main_ee1290ab_js_gz_len);
+  server.send_P(200, "text/javascript", (const char*)main_0f33eabb_js_gz, main_0f33eabb_js_gz_len);
 }
-
 void handleGetCss() {
   setCrossOriginHeaders();
   server.sendHeader("Content-Encoding", "gzip");
   server.sendHeader("Connection", "close");
-  server.send_P(200, "text/css", main_bf514a6e_css_gz, main_bf514a6e_css_gz_len);
+  server.send_P(200, "text/css", (const char*)main_75b37e2b_css_gz, main_75b37e2b_css_gz_len);
 }
-
 void handleGetFavicon() {  
   setCrossOriginHeaders();
   server.sendHeader("Content-Encoding", "gzip");
   server.sendHeader("Connection", "close");
-  server.send_P(200, "image/x-icon", favicon_ico_gz, favicon_ico_gz_len);
+  server.send_P(200, "image/x-icon", (const char*)favicon_ico_gz, favicon_ico_gz_len);
 }
-
 void handleGetSettings() {
   setCrossOriginHeaders();
   server.sendHeader("Connection", "close");
@@ -197,12 +193,8 @@ void handleUpdate() {
       Update.printError(Serial);
     }
   } else if (upload.status == UPLOAD_FILE_END) {
-    if (Update.end(true)) { // true to set the size to the current
-                            // progress
-      Serial.printf("Update Success: %u\nRebooting...\n",
-                    upload.totalSize);
-      delay(1000);
-      ESP.restart();
+    if (Update.end(true)) {
+      Serial.printf("Update Success: %u\n", upload.totalSize);
     } else {
       Update.printError(Serial);
     }
@@ -231,6 +223,7 @@ void handleScanWifi() {
 void handleSetSta() {
   String ssid = server.arg("ssid");
   String password = server.arg("password");
+  setCrossOriginHeaders();
   if (ssid.length() <= 0 || ssid.length() > 32) {
     server.sendHeader("Connection", "close");
     server.send(400, "text/plain", "SSID length should be between 1 and 32.");
@@ -241,7 +234,7 @@ void handleSetSta() {
     server.send(400, "text/plain", "Password length should be between 8 and 64.");
     return;
   }
-  bool r = wifiConnectSta(staSsid, staPassword);
+  bool r = wifiConnectSta(ssid, password);
   if (r) {
     settingsSetStaSsid(ssid);
     settingsSetStaPassword(password);
@@ -252,14 +245,19 @@ void handleSetSta() {
     server.send(400, "text/plain", "Wi-Fi Connection failed.");
   }
 }
+void handleRestart() {
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/plain", "OK");
+  ESP.restart();
+}
 
 void settingsBegin(String _version) {
   version = _version;
   settingsReadConfig();
 
   server.on("/", HTTP_GET, handleGetIndex);
-  server.on("/static/js/main.ee1290ab.js", HTTP_GET, handleGetJs);
-  server.on("/static/css/main.bf514a6e.css", HTTP_GET, handleGetCss);
+  server.on("/static/js/main.0f33eabb.js", HTTP_GET, handleGetJs);
+  server.on("/static/css/main.75b37e2b.css", HTTP_GET, handleGetCss);
   server.on("/favicon.ico", HTTP_GET, handleGetFavicon);
   server.on("/settings", HTTP_GET, handleGetSettings);
   server.on("/set-name", HTTP_POST, handleSetName);
@@ -278,6 +276,7 @@ void settingsBegin(String _version) {
   /*handling wifiHelper */
   server.on("/scan-wifi", HTTP_GET, handleScanWifi);
   server.on("/set-sta", HTTP_POST, handleSetSta);
+  server.on("/restart", HTTP_POST, handleRestart);
   server.begin();
 }
 
