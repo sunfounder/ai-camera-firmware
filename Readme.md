@@ -129,18 +129,14 @@ SET+RSTCFG
 
 You can access setting page under <http://192.168.4.1>
 
+### Setting Page source code
+
+See [ai-camera-www](https://github.com/sunfounder/ai-camera-www)
+
 ### Setting page API
 
-- `GET /`: Get setting page
-- `GET /version`: Get firmware version
-- `POST /set_ap_channel`: Set AP channel `channel` 1-13
-- `POST /restart_ap`: Restart AP
-- `POST /camera_horizontal_mirror`: Set camera horizontal mirror `mirror` 0-1
-- `POST /camera_vertical_flip`: Set camera vertical flip `flip` 0-1
-- `POST /camera_brightness`: Set camera brightness `brightness` 0-100
-- `POST /camera_contrast`: Set camera contrast `contrast` 0-100
-- `POST /camera_saturation`: Set camera saturation `saturation` 0-100
-- `POST /camera_sharpness`: Set camera sharpness `sharpness` 0-100
+See [Setting Page API](docs/setting-page-api.md)
+
 
 ## Data
 
