@@ -11,6 +11,7 @@
 #include "www/favicon.h"
 #include "www/css.h"
 #include "www/js.h"
+#include "log.h"
 
 WebServer server(80);
 Preferences preferences;
@@ -23,12 +24,17 @@ String apPassword;
 int apChannel;
 String staSsid;
 String staPassword;
-bool cameraHorizontalMirror;
-bool cameraVerticalFlip;
-int cameraBrightness;
-int cameraContrast;
-int cameraSaturation;
-int cameraSharpness;
+bool camHFlip;
+bool camVFlip;
+int camBrightness;
+int camContrast;
+int camSaturation;
+int camSharpness;
+
+#define HEADER_CONTENT_ENCODING F("Content-Encoding")
+#define HEADER_CONTENT_ENCODING_GZIP F("gzip")
+#define HEADER_CONNECTION F("Connection")
+#define HEADER_CONNECTION_CLOSE F("close")
 
 void setCrossOriginHeaders() {
   server.sendHeader("Access-Control-Allow-Origin", "*");
@@ -38,40 +44,64 @@ void setCrossOriginHeaders() {
 
 void returnOk() {
   setCrossOriginHeaders();
-  server.sendHeader("Connection", "close");
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(200, "text/plain", "OK");
 }
 
 void returnNameNotFound(String name) {
-  String error = String("Bad Request") + name + " not found";
+  String msg = String("Bad Request") + name + " not found";
+  error(msg.c_str());
   setCrossOriginHeaders();
-  server.sendHeader("Connection", "close");
-  server.send(400, "text/plain", error.c_str());
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
+  server.send(400, "text/plain", msg.c_str());
 }
 
-void postStringHandler(const char *name, void (*callback)(String)) {
+void returnSetError(String name) {
+  preferences.begin(SETTING_PREFERENCES, false);
+  size_t free = preferences.freeEntries();
+  preferences.end();
+  String msg = String("Set \"") + name + "\" error, free entries: " + String(free);
+  error(msg.c_str());
+  setCrossOriginHeaders();
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
+  server.send(502, "text/plain", msg.c_str());
+}
+
+void postStringHandler(const char *name, bool (*callback)(String)) {
   if (server.hasArg(name)) {
-    callback(server.arg(name));
-    returnOk();
+    bool result = callback(server.arg(name));
+    if (result) {
+      returnOk();
+    } else {
+      returnSetError(name);
+    }
   } else {
     returnNameNotFound(name);
   }
 }
-void postIntHandler(const char *name, void (*callback)(int)) {
+void postIntHandler(const char *name, bool (*callback)(int)) {
   if (server.hasArg(name)) {
     int value = server.arg(name).toInt();
-    callback(value);
-    returnOk();
+    bool result = callback(value);
+    if (result) {
+      returnOk();
+    } else {
+      returnSetError(name);
+    }
   } else {
     returnNameNotFound(name);
   }
 }
-void postBoolHandler(const char *name, void (*callback)(bool)) {
+void postBoolHandler(const char *name, bool (*callback)(bool)) {
   if (server.hasArg(name)) {
     String value = server.arg(name);
     bool bValue = (value == "true" || value == "1");
-    callback(bValue);
-    returnOk();
+    bool result = callback(bValue);
+    if (result) {
+      returnOk();
+    } else {
+      returnSetError(name);
+    }
   } else {
     returnNameNotFound(name);
   }
@@ -79,31 +109,31 @@ void postBoolHandler(const char *name, void (*callback)(bool)) {
 
 void handleGetIndex() {
   setCrossOriginHeaders();
-  server.sendHeader("Content-Encoding", "gzip");
-  server.sendHeader("Connection", "close");
+  server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send_P(200, "text/html", (const char*)index_html_gz, index_html_gz_len);
 }
 void handleGetJs() {
   setCrossOriginHeaders();
-  server.sendHeader("Content-Encoding", "gzip");
-  server.sendHeader("Connection", "close");
-  server.send_P(200, "text/javascript", (const char*)main_0f33eabb_js_gz, main_0f33eabb_js_gz_len);
+  server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
+  server.send_P(200, "text/javascript", (const char*)main_341663e4_js_gz, main_341663e4_js_gz_len);
 }
 void handleGetCss() {
   setCrossOriginHeaders();
-  server.sendHeader("Content-Encoding", "gzip");
-  server.sendHeader("Connection", "close");
+  server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send_P(200, "text/css", (const char*)main_75b37e2b_css_gz, main_75b37e2b_css_gz_len);
 }
 void handleGetFavicon() {  
   setCrossOriginHeaders();
-  server.sendHeader("Content-Encoding", "gzip");
-  server.sendHeader("Connection", "close");
+  server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send_P(200, "image/x-icon", (const char*)favicon_ico_gz, favicon_ico_gz_len);
 }
 void handleGetSettings() {
   setCrossOriginHeaders();
-  server.sendHeader("Connection", "close");
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(
     200, "application/json",
     String("{") + 
@@ -115,12 +145,12 @@ void handleGetSettings() {
       "\"apChannel\":" + String(apChannel) + "," +
       "\"staSsid\":\"" + staSsid + "\"," +
       "\"staPassword\":\"" + staPassword + "\"," +
-      "\"cameraHorizontalMirror\":" + (cameraHorizontalMirror ? "true" : "false") + "," +
-      "\"cameraVerticalFlip\":" + (cameraVerticalFlip ? "true" : "false") + "," +
-      "\"cameraBrightness\":" + String(cameraBrightness) + "," +
-      "\"cameraContrast\":" + String(cameraContrast) + "," +
-      "\"cameraSaturation\":" + String(cameraSaturation) + "," +
-      "\"cameraSharpness\":" + String(cameraSharpness) + "," +
+      "\"cameraHorizontalMirror\":" + (camHFlip ? "true" : "false") + "," +
+      "\"cameraVerticalFlip\":" + (camVFlip ? "true" : "false") + "," +
+      "\"cameraBrightness\":" + String(camBrightness) + "," +
+      "\"cameraContrast\":" + String(camContrast) + "," +
+      "\"cameraSaturation\":" + String(camSaturation) + "," +
+      "\"cameraSharpness\":" + String(camSharpness) + "," +
       "\"macAddress\":\"" + wifiGetMacAddress() + "\"," + // Mac address: xx:xx:xx:xx:xx:xx
       "\"macPrefix\":\"" + wifiGetMacPrefix() + "\"," + // Mac address prefix: xxxxxx
       "\"staConnected\":\"" + (wifiIsStaConnected() ? "true" : "false") + "\"," +
@@ -144,38 +174,38 @@ void handleSetApChannel() {
   postIntHandler("apChannel", settingsSetApChannel);
 }
 void handleSetCameraHorizontalMirror() {
-  postBoolHandler("cameraHorizontalMirror", settingsSetCameraHorizontalMirror);
+  postBoolHandler("camHFlip", settingsSetCameraHorizontalMirror);
   sensor_t *s = esp_camera_sensor_get();
-  s->set_hmirror(s, cameraHorizontalMirror);
+  s->set_hmirror(s, camHFlip);
 }
 void handleSetCameraVerticalFlip() {
-  postBoolHandler("cameraVerticalFlip", settingsSetCameraVerticalFlip);
+  postBoolHandler("camVFlip", settingsSetCameraVerticalFlip);
   sensor_t *s = esp_camera_sensor_get();
-  s->set_vflip(s, cameraVerticalFlip);
+  s->set_vflip(s, camVFlip);
 }
 void handleSetCameraBrightness() {
-  postIntHandler("cameraBrightness", settingsSetCameraBrightness);
+  postIntHandler("camBrightness", settingsSetCameraBrightness);
   sensor_t *s = esp_camera_sensor_get();
-  s->set_brightness(s, cameraBrightness);
+  s->set_brightness(s, camBrightness);
 }
 void handleSetCameraContrast() {
-  postIntHandler("cameraContrast", settingsSetCameraContrast);
+  postIntHandler("camContrast", settingsSetCameraContrast);
   sensor_t *s = esp_camera_sensor_get();
-  s->set_contrast(s, cameraContrast);
+  s->set_contrast(s, camContrast);
 }
 void handleSetCameraSaturation() {
-  postIntHandler("cameraSaturation", settingsSetCameraSaturation);
+  postIntHandler("camSaturation", settingsSetCameraSaturation);
   sensor_t *s = esp_camera_sensor_get();
-  s->set_saturation(s, cameraSaturation);
+  s->set_saturation(s, camSaturation);
 }
 void handleSetCameraSharpness() {
-  postIntHandler("cameraSharpness", settingsSetCameraSharpness);
+  postIntHandler("camSharpness", settingsSetCameraSharpness);
   sensor_t *s = esp_camera_sensor_get();
-  s->set_sharpness(s, cameraSharpness);
+  s->set_sharpness(s, camSharpness);
 }
 void handleUpdateReturn() {
   setCrossOriginHeaders();
-  server.sendHeader("Connection", "close");
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
 }
 void handleUpdate() {
@@ -217,7 +247,7 @@ void handleScanWifi() {
   }
   json += "]";
   setCrossOriginHeaders();
-  server.sendHeader("Connection", "close");
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(200, "application/json", json);
 }
 void handleSetSta() {
@@ -225,12 +255,12 @@ void handleSetSta() {
   String password = server.arg("password");
   setCrossOriginHeaders();
   if (ssid.length() <= 0 || ssid.length() > 32) {
-    server.sendHeader("Connection", "close");
+    server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
     server.send(400, "text/plain", "SSID length should be between 1 and 32.");
     return;
   }
   if (password.length() <= 7 || password.length() > 64) {
-    server.sendHeader("Connection", "close");
+    server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
     server.send(400, "text/plain", "Password length should be between 8 and 64.");
     return;
   }
@@ -238,15 +268,15 @@ void handleSetSta() {
   if (r) {
     settingsSetStaSsid(ssid);
     settingsSetStaPassword(password);
-    server.sendHeader("Connection", "close");
+    server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
     server.send(200, "text/plain", wifiGetStaIp());
   } else {
-    server.sendHeader("Connection", "close");
+    server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
     server.send(400, "text/plain", "Wi-Fi Connection failed.");
   }
 }
 void handleRestart() {
-  server.sendHeader("Connection", "close");
+  server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(200, "text/plain", "OK");
   ESP.restart();
 }
@@ -256,7 +286,7 @@ void settingsBegin(String _version) {
   settingsReadConfig();
 
   server.on("/", HTTP_GET, handleGetIndex);
-  server.on("/static/js/main.0f33eabb.js", HTTP_GET, handleGetJs);
+  server.on("/static/js/main.341663e4.js", HTTP_GET, handleGetJs);
   server.on("/static/css/main.75b37e2b.css", HTTP_GET, handleGetCss);
   server.on("/favicon.ico", HTTP_GET, handleGetFavicon);
   server.on("/settings", HTTP_GET, handleGetSettings);
@@ -265,15 +295,13 @@ void settingsBegin(String _version) {
   server.on("/set-apSsid", HTTP_POST, handleSetApSsid);
   server.on("/set-apPassword", HTTP_POST, handleSetApPassword);
   server.on("/set-apChannel", HTTP_POST, handleSetApChannel);
-  server.on("/set-cameraHorizontalMirror", HTTP_POST, handleSetCameraHorizontalMirror);
-  server.on("/set-cameraVerticalFlip", HTTP_POST, handleSetCameraVerticalFlip);
-  server.on("/set-cameraBrightness", HTTP_POST, handleSetCameraBrightness);
-  server.on("/set-cameraContrast", HTTP_POST, handleSetCameraContrast);
-  server.on("/set-cameraSaturation", HTTP_POST, handleSetCameraSaturation);
-  server.on("/set-cameraSharpness", HTTP_POST, handleSetCameraSharpness);
-  /*handling uploading firmware file */
+  server.on("/set-camHFlip", HTTP_POST, handleSetCameraHorizontalMirror);
+  server.on("/set-camVFlip", HTTP_POST, handleSetCameraVerticalFlip);
+  server.on("/set-camBrightness", HTTP_POST, handleSetCameraBrightness);
+  server.on("/set-camContrast", HTTP_POST, handleSetCameraContrast);
+  server.on("/set-camSaturation", HTTP_POST, handleSetCameraSaturation);
+  server.on("/set-camSharpness", HTTP_POST, handleSetCameraSharpness);
   server.on("/update", HTTP_POST, handleUpdateReturn, handleUpdate);
-  /*handling wifiHelper */
   server.on("/scan-wifi", HTTP_GET, handleScanWifi);
   server.on("/set-sta", HTTP_POST, handleSetSta);
   server.on("/restart", HTTP_POST, handleRestart);
@@ -289,12 +317,12 @@ void settingsReadConfig() {
   apChannel = preferences.getInt("apChannel", DEFAULT_AP_CHANNEL);
   staSsid = preferences.getString("staSsid", DEFAULT_STA_SSID);
   staPassword = preferences.getString("staPassword", DEFAULT_STA_PASSWORD);
-  cameraHorizontalMirror = preferences.getBool("cameraHorizontalMirror", DEFAULT_CAMERA_HORIZONTAL_MIRROR);
-  cameraVerticalFlip = preferences.getBool("cameraVerticalFlip", DEFAULT_CAMERA_VERTICAL_FLIP);
-  cameraBrightness = preferences.getInt("cameraBrightness", DEFAULT_CAMERA_BRIGHTNESS);
-  cameraContrast = preferences.getInt("cameraContrast", DEFAULT_CAMERA_CONTRAST);
-  cameraSaturation = preferences.getInt("cameraSaturation", DEFAULT_CAMERA_SATURATION);
-  cameraSharpness = preferences.getInt("cameraSharpness", DEFAULT_CAMERA_SHARPNESS);
+  camHFlip = preferences.getBool("camHFlip", DEFAULT_CAMERA_HORIZONTAL_MIRROR);
+  camVFlip = preferences.getBool("camVFlip", DEFAULT_CAMERA_VERTICAL_FLIP);
+  camBrightness = preferences.getInt("camBrightness", DEFAULT_CAMERA_BRIGHTNESS);
+  camContrast = preferences.getInt("camContrast", DEFAULT_CAMERA_CONTRAST);
+  camSaturation = preferences.getInt("camSaturation", DEFAULT_CAMERA_SATURATION);
+  camSharpness = preferences.getInt("camSharpness", DEFAULT_CAMERA_SHARPNESS);
   preferences.end();
 }
 
@@ -314,102 +342,115 @@ String settingsGetApPassword() { return apPassword; }
 int settingsGetApChannel() { return apChannel; }
 String settingsGetStaSsid() { return staSsid; }
 String settingsGetStaPassword() { return staPassword; }
-bool settingsGetCameraHorizontalMirror() { return cameraHorizontalMirror; }
-bool settingsGetCameraVerticalFlip() { return cameraVerticalFlip; }
-int settingsGetCameraBrightness() { return cameraBrightness; }
-int settingsGetCameraContrast() { return cameraContrast; }
-int settingsGetCameraSaturation() { return cameraSaturation; }
-int settingsGetCameraSharpness() { return cameraSharpness; }
+bool settingsGetCameraHorizontalMirror() { return camHFlip; }
+bool settingsGetCameraVerticalFlip() { return camVFlip; }
+int settingsGetCameraBrightness() { return camBrightness; }
+int settingsGetCameraContrast() { return camContrast; }
+int settingsGetCameraSaturation() { return camSaturation; }
+int settingsGetCameraSharpness() { return camSharpness; }
 
-void settingsSetName(String value) {
+bool settingsSetName(String value) {
   name = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putString("name", name);
+  bool result = preferences.putString("name", name);
   preferences.end();
+  return result;
 }
 
-void settingsSetType(String value) {
+bool settingsSetType(String value) {
   type = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putString("type", type);
+  bool result = preferences.putString("type", type);
   preferences.end();
+  return result;
 }
 
-void settingsSetApSsid(String value) {
+bool settingsSetApSsid(String value) {
   apSsid = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putString("apSsid", apSsid);
+  bool result = preferences.putString("apSsid", apSsid);
   preferences.end();
+  return result;
 }
 
-void settingsSetApPassword(String value) {
+bool settingsSetApPassword(String value) {
   apPassword = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putString("apPassword", apPassword);
+  bool result = preferences.putString("apPassword", apPassword);
   preferences.end();
+  return result;
 }
 
-void settingsSetApChannel(int value) {
+bool settingsSetApChannel(int value) {
   apChannel = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putInt("apChannel", apChannel);
+  bool result = preferences.putInt("apChannel", apChannel);
   preferences.end();
+  return result;
 }
 
-void settingsSetStaSsid(String value) {
+bool settingsSetStaSsid(String value) {
   staSsid = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putString("staSsid", staSsid);
+  bool result = preferences.putString("staSsid", staSsid);
   preferences.end();
+  return result;
 }
 
-void settingsSetStaPassword(String value) {
+bool settingsSetStaPassword(String value) {
   staPassword = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putString("staPassword", staPassword);
+  bool result = preferences.putString("staPassword", staPassword);
   preferences.end();
+  return result;
 }
 
-void settingsSetCameraHorizontalMirror(bool value) {
-  cameraHorizontalMirror = value;
+bool settingsSetCameraHorizontalMirror(bool value) {
+  camHFlip = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putBool("cameraHorizontalMirror", cameraHorizontalMirror);
+  bool result = preferences.putBool("camHFlip", camHFlip);
   preferences.end();
+  return result;
 }
 
-void settingsSetCameraVerticalFlip(bool value) {
-  cameraVerticalFlip = value;
+bool settingsSetCameraVerticalFlip(bool value) {
+  camVFlip = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putBool("cameraVerticalFlip", cameraVerticalFlip);
+  bool result = preferences.putBool("camVFlip", camVFlip);
   preferences.end();
+  return result;
 }
 
-void settingsSetCameraBrightness(int value) {
-  cameraBrightness = value;
+bool settingsSetCameraBrightness(int value) {
+  camBrightness = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putInt("cameraBrightness", cameraBrightness);
+  bool result = preferences.putInt("camBrightness", camBrightness);
   preferences.end();
+  return result;
 }
 
-void settingsSetCameraContrast(int value) {
-  cameraContrast = value;
+bool settingsSetCameraContrast(int value) {
+  camContrast = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putInt("cameraContrast", cameraContrast);
+  bool result = preferences.putInt("camContrast", camContrast);
   preferences.end();
+  return result;
 }
 
-void settingsSetCameraSaturation(int value) {
-  cameraSaturation = value;
+bool settingsSetCameraSaturation(int value) {
+  camSaturation = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putInt("cameraSaturation", cameraSaturation);
+  bool result = preferences.putInt("camSaturation", camSaturation);
   preferences.end();
+  return result;
 }
 
-void settingsSetCameraSharpness(int value) {
-  cameraSharpness = value;
+bool settingsSetCameraSharpness(int value) {
+  camSharpness = value;
   preferences.begin(SETTING_PREFERENCES, false);
-  preferences.putInt("cameraSharpness", cameraSharpness);
+  bool result = preferences.putInt("camSharpness", camSharpness);
   preferences.end();
+  return result;
 }
 
 bool settingsNameChanged() { return name.compareTo(DEFAULT_NAME) != 0; }
