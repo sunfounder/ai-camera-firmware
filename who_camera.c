@@ -68,6 +68,14 @@ void register_camera(const pixformat_t pixel_fromat,
   config.fb_location = CAMERA_FB_IN_PSRAM;
   config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
 
+#if CONFIG_IDF_TARGET_ESP32S3
+    config.fb_count = 2;
+#endif
+#if defined(ESP32_S3_CAM)
+  pinMode(13, INPUT_PULLUP);
+  pinMode(14, INPUT_PULLUP);
+#endif
+
   // camera init
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {

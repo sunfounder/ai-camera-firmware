@@ -19,7 +19,7 @@
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.4.1"
+#define VERSION "1.4.2"
 
 #include "led_status.hpp"
 #include "who_camera.h"
@@ -29,7 +29,7 @@
 #include "ArduinoJson.h"
 #include "soc/soc.h"    // disable brownout detector
 #include "soc/rtc_cntl_reg.h"
-#include "esp32/rom/rtc.h" // rst reason 
+#include "rom/rtc.h" // rst reason
 #include <ESPmDNS.h> // mDNS
 #include <Preferences.h>
 
@@ -37,8 +37,8 @@
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/ResetReason/ResetReason.ino
 
 /* Select development board */
-#define ESP32_CAM
-// #define TTGO_CAMERA
+// #define ESP32_CAM
+#define ESP32_S3_CAM
 #include "pins.h" // after define development board
 
 /* ----------------------- Configuration -------------------------------- */
@@ -123,7 +123,7 @@ void setup() {
 
   Serial.println(F("[Init]"));
 
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+  // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
   // Read preferences
   Preferences preferences;
