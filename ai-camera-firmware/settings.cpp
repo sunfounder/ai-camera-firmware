@@ -117,7 +117,7 @@ void handleGetJs() {
   setCrossOriginHeaders();
   server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
-  server.send_P(200, "text/javascript", (const char*)main_341663e4_js_gz, main_341663e4_js_gz_len);
+  server.send_P(200, "text/javascript", (const char*)main_6ebed670_js_gz, main_6ebed670_js_gz_len);
 }
 void handleGetCss() {
   setCrossOriginHeaders();
@@ -286,7 +286,7 @@ void settingsBegin(String _version) {
   settingsReadConfig();
 
   server.on("/", HTTP_GET, handleGetIndex);
-  server.on("/static/js/main.341663e4.js", HTTP_GET, handleGetJs);
+  server.on("/static/js/main.6ebed670.js", HTTP_GET, handleGetJs);
   server.on("/static/css/main.75b37e2b.css", HTTP_GET, handleGetCss);
   server.on("/favicon.ico", HTTP_GET, handleGetFavicon);
   server.on("/settings", HTTP_GET, handleGetSettings);
@@ -295,12 +295,12 @@ void settingsBegin(String _version) {
   server.on("/set-apSsid", HTTP_POST, handleSetApSsid);
   server.on("/set-apPassword", HTTP_POST, handleSetApPassword);
   server.on("/set-apChannel", HTTP_POST, handleSetApChannel);
-  server.on("/set-camHFlip", HTTP_POST, handleSetCameraHorizontalMirror);
-  server.on("/set-camVFlip", HTTP_POST, handleSetCameraVerticalFlip);
-  server.on("/set-camBrightness", HTTP_POST, handleSetCameraBrightness);
-  server.on("/set-camContrast", HTTP_POST, handleSetCameraContrast);
-  server.on("/set-camSaturation", HTTP_POST, handleSetCameraSaturation);
-  server.on("/set-camSharpness", HTTP_POST, handleSetCameraSharpness);
+  server.on("/set-cameraHorizontalMirror", HTTP_POST, handleSetCameraHorizontalMirror);
+  server.on("/set-cameraVerticalFlip", HTTP_POST, handleSetCameraVerticalFlip);
+  server.on("/set-cameraBrightness", HTTP_POST, handleSetCameraBrightness);
+  server.on("/set-cameraContrast", HTTP_POST, handleSetCameraContrast);
+  server.on("/set-cameraSaturation", HTTP_POST, handleSetCameraSaturation);
+  server.on("/set-cameraSharpness", HTTP_POST, handleSetCameraSharpness);
   server.on("/update", HTTP_POST, handleUpdateReturn, handleUpdate);
   server.on("/scan-wifi", HTTP_GET, handleScanWifi);
   server.on("/set-sta", HTTP_POST, handleSetSta);
