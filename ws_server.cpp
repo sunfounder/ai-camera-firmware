@@ -57,7 +57,7 @@ void WS_Server::begin(int port, String _name, String _type, String _check) {
   ws_name = _name;
   ws_type = _type;
   ws_check= _check;
-  ws = WebSocketsServer(port);
+  // ws = WebSocketsServer(port);
   ws.begin();
   ws.onEvent(onWebSocketEvent);
   pingPongTimer.attach_ms(20, checkPingPong);

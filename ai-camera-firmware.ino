@@ -12,14 +12,14 @@
     - ArduinoJson (by Benoit Blanchon)
     - WebSockets (by Markus Sattler) (Links2004)
 
-  Version: 1.4.1
+  Version: 1.4.2
     -- https://github.com/sunfounder/ai-camera-firmware
   
   Author: Sunfounder
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.4.1"
+#define VERSION "1.4.2"
 
 #include "led_status.hpp"
 #include "who_camera.h"
