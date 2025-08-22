@@ -35,9 +35,14 @@ bool WiFiHelper::connect_STA(){
 }
 
 bool WiFiHelper::connect_AP(){
-  WiFi.softAP(ssid.c_str(), password.c_str(), apChannel);
-  ip = WiFi.softAPIP().toString();
-  return true;
+  bool success = WiFi.softAP(ssid.c_str(), password.c_str(), apChannel);
+  if (success){
+    ip = WiFi.softAPIP().toString();
+  }
+  else{
+    Serial.println("AP connect failed");
+  }
+  return success;
 }
 
 bool WiFiHelper::connect(int mode, String _ssid, String _password, int _apChannel){
@@ -62,6 +67,7 @@ bool WiFiHelper::connect(int mode, String _ssid, String _password, int _apChanne
   }
 
   if (!ret){
+    Serial.println("[ERROR] WiFi connect failed");
     return false;
   }
 
