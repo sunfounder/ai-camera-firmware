@@ -159,11 +159,11 @@ void loop() {
   ws_server_camera_handler();
   serial_received_handler();
   settingsHandler();
-  if (millis() - lastMemCheck > 5000) {
-    Serial.printf("[DEBUG] Free heap: %d, Min free heap: %d\n", 
-                ESP.getFreeHeap(), ESP.getMinFreeHeap());
-    lastMemCheck = millis();
-  }
+  // if (millis() - lastMemCheck > 5000) {
+  //   Serial.printf("[DEBUG] Free heap: %d, Min free heap: %d\n", 
+  //               ESP.getFreeHeap(), ESP.getMinFreeHeap());
+  //   lastMemCheck = millis();
+  // }
   delay(6);
 }
 
