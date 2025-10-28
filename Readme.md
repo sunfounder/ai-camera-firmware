@@ -15,17 +15,19 @@ You may need to reset the module to factory settings, if you forget the AP SSID 
 
 - Pay attention to enable PSRAM, select "Huge APP" Partition Scheme
 
-    Board: "ESP32 Dev Module"
-    Upload Speed: "921600"
-    CPU Frequency: "240MHz (WiFi/BT)"
+    **Board: "ESP32 Dev Module"**
+    **CPU Frequency: "240MHz (WiFi/BT)"**
+    Core Debug Level: "None"
+    Erase All Flash Before Sketch Upload: "Enabled"
+    Events Run On: "Core 1"
     Flash Frequency: "80MHz"
     Flash Mode: "QIO"
-    Flash Size: "4MB (32Mb)"
-    Partition Scheme: "Minimal SPIFFS APP (1.9MB APP with OTA/190k SPIFFS)"
-    Core Debug Level: "None"
-    PSRAM: "Enabled"
+    **Flash Size: "4MB (32Mb)"**
+    Jtag Adapter: "Disabled"
     Arduino Runs On: "Core 1"
-    Events Run On: "Core 1"
+    **Partition Scheme: "Minimal SPIFFS APP (1.9MB APP with OTA/190k SPIFFS)"**
+    **PSRAM: "Enabled"**
+    Upload Speed: "921600"
 
 ## Commands
 

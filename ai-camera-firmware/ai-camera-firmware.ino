@@ -43,8 +43,8 @@
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/ResetReason/ResetReason.ino
 
 /* Select development board */
-// #define ESP32_CAM
-#define ESP32_S3_CAM
+#define ESP32_CAM
+// #define ESP32_S3_CAM
 #include "pins.h" // after define development board
 
 /* ----------------------- Configuration -------------------------------- */
