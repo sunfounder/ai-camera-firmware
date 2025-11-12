@@ -13,6 +13,8 @@
 #include "www/js.h"
 #include "log.h"
 
+#define ENABLE_CORS
+
 WebServer server(80);
 Preferences preferences;
 
@@ -43,7 +45,9 @@ void setCrossOriginHeaders() {
 }
 
 void returnOk() {
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(200, "text/plain", "OK");
 }
@@ -51,7 +55,10 @@ void returnOk() {
 void returnNameNotFound(String name) {
   String msg = String("Bad Request") + name + " not found";
   error(msg.c_str());
+
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(400, "text/plain", msg.c_str());
 }
@@ -62,12 +69,18 @@ void returnSetError(String name) {
   preferences.end();
   String msg = String("Set \"") + name + "\" error, free entries: " + String(free);
   error(msg.c_str());
+
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(502, "text/plain", msg.c_str());
 }
 
 void postStringHandler(const char *name, bool (*callback)(String)) {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   if (server.hasArg(name)) {
     bool result = callback(server.arg(name));
     if (result) {
@@ -80,6 +93,9 @@ void postStringHandler(const char *name, bool (*callback)(String)) {
   }
 }
 void postIntHandler(const char *name, bool (*callback)(int)) {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   if (server.hasArg(name)) {
     int value = server.arg(name).toInt();
     bool result = callback(value);
@@ -93,6 +109,9 @@ void postIntHandler(const char *name, bool (*callback)(int)) {
   }
 }
 void postBoolHandler(const char *name, bool (*callback)(bool)) {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   if (server.hasArg(name)) {
     String value = server.arg(name);
     bool bValue = (value == "true" || value == "1");
@@ -108,31 +127,41 @@ void postBoolHandler(const char *name, bool (*callback)(bool)) {
 }
 
 void handleGetIndex() {
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send_P(200, "text/html", (const char*)index_html_gz, index_html_gz_len);
 }
 void handleGetJs() {
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
-  server.send_P(200, "text/javascript", (const char*)main_6ebed670_js_gz, main_6ebed670_js_gz_len);
+  server.send_P(200, "text/javascript", (const char*)main_js_gz, main_js_gz_len);
 }
 void handleGetCss() {
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
-  server.send_P(200, "text/css", (const char*)main_75b37e2b_css_gz, main_75b37e2b_css_gz_len);
+  server.send_P(200, "text/css", (const char*)main_css_gz, main_css_gz_len);
 }
-void handleGetFavicon() {  
+void handleGetFavicon() {
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send_P(200, "image/x-icon", (const char*)favicon_ico_gz, favicon_ico_gz_len);
 }
 void handleGetSettings() {
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(
     200, "application/json",
@@ -159,74 +188,128 @@ void handleGetSettings() {
   );
 }
 void handleSetName() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postStringHandler("name", settingsSetName);
 }
 void handleSetType() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postStringHandler("type", settingsSetType);
 }
 void handleSetApSsid() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postStringHandler("apSsid", settingsSetApSsid);
 }
 void handleSetApPassword() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postStringHandler("apPassword", settingsSetApPassword);
 }
 void handleSetApChannel() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postIntHandler("apChannel", settingsSetApChannel);
 }
 void handleSetCameraHorizontalMirror() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postBoolHandler("camHFlip", settingsSetCameraHorizontalMirror);
   sensor_t *s = esp_camera_sensor_get();
   s->set_hmirror(s, camHFlip);
 }
 void handleSetCameraVerticalFlip() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postBoolHandler("camVFlip", settingsSetCameraVerticalFlip);
   sensor_t *s = esp_camera_sensor_get();
   s->set_vflip(s, camVFlip);
 }
 void handleSetCameraBrightness() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postIntHandler("camBrightness", settingsSetCameraBrightness);
   sensor_t *s = esp_camera_sensor_get();
   s->set_brightness(s, camBrightness);
 }
 void handleSetCameraContrast() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postIntHandler("camContrast", settingsSetCameraContrast);
   sensor_t *s = esp_camera_sensor_get();
   s->set_contrast(s, camContrast);
 }
 void handleSetCameraSaturation() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postIntHandler("camSaturation", settingsSetCameraSaturation);
   sensor_t *s = esp_camera_sensor_get();
   s->set_saturation(s, camSaturation);
 }
 void handleSetCameraSharpness() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   postIntHandler("camSharpness", settingsSetCameraSharpness);
   sensor_t *s = esp_camera_sensor_get();
   s->set_sharpness(s, camSharpness);
 }
 void handleUpdateReturn() {
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
-  server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+  if (Update.hasError()) {
+    String msg = "Update failed: " + String(Update.errorString());
+    Serial.println(msg);
+    server.send(400, "text/plain", msg.c_str());
+  } else {
+    server.send(200, "text/plain", "OK");
+  }
+
 }
 void handleUpdate() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   HTTPUpload &upload = server.upload();
   if (upload.status == UPLOAD_FILE_START) {
     Serial.printf("Update: %s\n", upload.filename.c_str());
-    if (!Update.begin(
-            UPDATE_SIZE_UNKNOWN)) { // start with max available size
-      Update.printError(Serial);
+    // start with max available size
+    if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
+      String msg = "Update begin failed: " + String(Update.errorString());
+      Serial.println(msg);
+      server.send(400, "text/plain", msg.c_str());
+      return;
     }
   } else if (upload.status == UPLOAD_FILE_WRITE) {
     /* flashing firmware to ESP*/
     if (Update.write(upload.buf, upload.currentSize) !=
         upload.currentSize) {
-      Update.printError(Serial);
+      String msg = "Update write failed: " + String(Update.errorString());
+      Serial.println(msg);
+      server.send(400, "text/plain", msg.c_str());
+      return;
     }
   } else if (upload.status == UPLOAD_FILE_END) {
     if (Update.end(true)) {
       Serial.printf("Update Success: %u\n", upload.totalSize);
     } else {
-      Update.printError(Serial);
+      String msg = "Update end failed: " + String(Update.errorString());
+      Serial.println(msg);
+      server.send(400, "text/plain", msg.c_str());
+      return;
     }
   }
 }
@@ -246,14 +329,19 @@ void handleScanWifi() {
     json.remove(json.length() - 1); // Remove the last comma
   }
   json += "]";
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(200, "application/json", json);
 }
 void handleSetSta() {
   String ssid = server.arg("ssid");
   String password = server.arg("password");
+
+  #ifdef ENABLE_CORS
   setCrossOriginHeaders();
+  #endif
   if (ssid.length() <= 0 || ssid.length() > 32) {
     server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
     server.send(400, "text/plain", "SSID length should be between 1 and 32.");
@@ -276,8 +364,12 @@ void handleSetSta() {
   }
 }
 void handleRestart() {
+  #ifdef ENABLE_CORS
+  setCrossOriginHeaders();
+  #endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(200, "text/plain", "OK");
+  delay(1000);
   ESP.restart();
 }
 
@@ -285,9 +377,12 @@ void settingsBegin(String _version) {
   version = _version;
   settingsReadConfig();
 
+  String js_url = String("/static/js/main.") + JS_HASH + ".js";
+  String css_url = String("/static/css/main.") + CSS_HASH + ".css";
+
   server.on("/", HTTP_GET, handleGetIndex);
-  server.on("/static/js/main.6ebed670.js", HTTP_GET, handleGetJs);
-  server.on("/static/css/main.75b37e2b.css", HTTP_GET, handleGetCss);
+  server.on(js_url.c_str(), HTTP_GET, handleGetJs);
+  server.on(css_url.c_str(), HTTP_GET, handleGetCss);
   server.on("/favicon.ico", HTTP_GET, handleGetFavicon);
   server.on("/settings", HTTP_GET, handleGetSettings);
   server.on("/set-name", HTTP_POST, handleSetName);

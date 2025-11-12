@@ -7,6 +7,16 @@ This is a firmware read convert uart command and create a websocket server. It's
 - WebSockets by Markus Sattler
 - ArduinoJson
 
+## Update setting page www.
+
+1. unpack setting page www to tools folder as build
+2. run `python tools/file_to_c_gz.py`, It will update `ai-camera-firmware/www` folder
+
+## Pack binary
+
+1. In Arduino IDE, click "Sketch" -> "Export Compiled Binary", it will compile firmware to `ai-camera-firmware/build` folder
+2. Run `python tools/pack_binary.py`, It will pack the binary file to `ai-camera-firmware/firmware` folder
+
 ## Fastory Reset
 
 You may need to reset the module to factory settings, if you forget the AP SSID and password. To do this, Connect the board to power, short IO13 and IO15 with a tweezer or a screwdriver, then press the reset button, and release the reset button. You will see the big bright LED blink twice fast. Then you can release the tweezer or screwdriver, and press the reset button again. The module will reset to factory settings.

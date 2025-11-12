@@ -19,18 +19,11 @@
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.5.3.11"
+#define VERSION "1.5.3.17"
 
 #include "settings.h"
 #include "camera_server.h"
 #include "rom/rtc.h" // rst reason
-// #if CONFIG_IDF_TARGET_ESP32
-// #include "esp32/rom/rtc.h" // rst reason
-// #elif CONFIG_IDF_TARGET_ESP32S3
-// #include "esp32s3/rom/rtc.h" // rst reason
-// #else
-// #error target not implement
-// #endif
 #include "led_status.h"
 #include "soc/rtc_cntl_reg.h"
 #include "soc/soc.h" // disable brownout detector

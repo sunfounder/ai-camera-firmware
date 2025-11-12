@@ -1,5 +1,6 @@
 // Gzip online：
 // https://mischianti.org/online-converter-file-to-cpp-gzip-byte-array-3/
+// Then replace bottom all
 
 //File: favicon.ico.gz, Size: 968
 #define favicon_ico_gz_len 968
