@@ -9,8 +9,19 @@ This is a firmware read convert uart command and create a websocket server. It's
 
 ## Update setting page www.
 
-1. unpack setting page www to tools folder as build
-2. run `python tools/file_to_c_gz.py`, It will update `ai-camera-firmware/www` folder
+### Get WWW
+
+Unpack setting page www to tools folder as build
+
+### Update WWW
+
+Run command
+
+```bash
+python tools/file_to_c_gz.py
+```
+
+It will update `ai-camera-firmware/www` folder
 
 ## Pack binary
 
