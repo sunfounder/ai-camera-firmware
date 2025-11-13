@@ -33,6 +33,8 @@ int camContrast;
 int camSaturation;
 int camSharpness;
 
+bool needReboot = false;
+
 #define HEADER_CONTENT_ENCODING F("Content-Encoding")
 #define HEADER_CONTENT_ENCODING_GZIP F("gzip")
 #define HEADER_CONNECTION F("Connection")
@@ -183,7 +185,8 @@ void handleGetSettings() {
       "\"macAddress\":\"" + wifiGetMacAddress() + "\"," + // Mac address: xx:xx:xx:xx:xx:xx
       "\"macPrefix\":\"" + wifiGetMacPrefix() + "\"," + // Mac address prefix: xxxxxx
       "\"staConnected\":\"" + (wifiIsStaConnected() ? "true" : "false") + "\"," +
-      "\"ipAddress\":\"" + wifiGetStaIp() + "\"" +
+      "\"ipAddress\":\"" + wifiGetStaIp() + "\"," +
+      "\"needReboot\":\"" + (needReboot ? "true" : "false") + "\""
     "}"
   );
 }
@@ -445,7 +448,11 @@ int settingsGetCameraSaturation() { return camSaturation; }
 int settingsGetCameraSharpness() { return camSharpness; }
 
 bool settingsSetName(String value) {
+  if (name == value) {
+    return true;
+  }
   name = value;
+  needReboot = true;
   preferences.begin(SETTING_PREFERENCES, false);
   bool result = preferences.putString("name", name);
   preferences.end();
@@ -453,7 +460,11 @@ bool settingsSetName(String value) {
 }
 
 bool settingsSetType(String value) {
+  if (type == value) {
+    return true;
+  }
   type = value;
+  needReboot = true;
   preferences.begin(SETTING_PREFERENCES, false);
   bool result = preferences.putString("type", type);
   preferences.end();
@@ -461,7 +472,11 @@ bool settingsSetType(String value) {
 }
 
 bool settingsSetApSsid(String value) {
+  if (apSsid == value) {
+    return true;
+  }
   apSsid = value;
+  needReboot = true;
   preferences.begin(SETTING_PREFERENCES, false);
   bool result = preferences.putString("apSsid", apSsid);
   preferences.end();
@@ -469,7 +484,11 @@ bool settingsSetApSsid(String value) {
 }
 
 bool settingsSetApPassword(String value) {
+  if (apPassword == value) {
+    return true;
+  }
   apPassword = value;
+  needReboot = true;
   preferences.begin(SETTING_PREFERENCES, false);
   bool result = preferences.putString("apPassword", apPassword);
   preferences.end();
@@ -477,7 +496,11 @@ bool settingsSetApPassword(String value) {
 }
 
 bool settingsSetApChannel(int value) {
+  if (apChannel == value) {
+    return true;
+  }
   apChannel = value;
+  needReboot = true;
   preferences.begin(SETTING_PREFERENCES, false);
   bool result = preferences.putInt("apChannel", apChannel);
   preferences.end();
@@ -485,7 +508,11 @@ bool settingsSetApChannel(int value) {
 }
 
 bool settingsSetStaSsid(String value) {
+  if (staSsid == value) {
+    return true;
+  }
   staSsid = value;
+  needReboot = true;
   preferences.begin(SETTING_PREFERENCES, false);
   bool result = preferences.putString("staSsid", staSsid);
   preferences.end();
@@ -493,7 +520,11 @@ bool settingsSetStaSsid(String value) {
 }
 
 bool settingsSetStaPassword(String value) {
+  if (staPassword == value) {
+    return true;
+  }
   staPassword = value;
+  needReboot = true;
   preferences.begin(SETTING_PREFERENCES, false);
   bool result = preferences.putString("staPassword", staPassword);
   preferences.end();

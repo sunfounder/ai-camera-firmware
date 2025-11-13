@@ -31,14 +31,15 @@ The ESP32-Cam's Web server provides multiple API interfaces for configuring and 
       "staPassword": "sta_password",
       "cameraHorizontalMirror": true,
       "cameraVerticalFlip": true,
-      "cameraBrightness": 1.0,
-      "cameraContrast": 1.0,
-      "cameraSaturation": 1.0,
-      "cameraSharpness": 1.0,
+      "cameraBrightness": 0,
+      "cameraContrast": 0,
+      "cameraSaturation": 0,
+      "cameraSharpness": 0,
       "macAddress": "xx:xx:xx:xx:xx:xx",
       "macPrefix": "xx:xx:xx",
       "staConnected": "true",
-      "ipAddress": "192.168.1.100"
+      "ipAddress": "192.168.1.100",
+      "needReboot": "false"
     }
     ```
 
@@ -97,7 +98,7 @@ The ESP32-Cam's Web server provides multiple API interfaces for configuring and 
 - **Method**: `POST`
 - **Description**: Set whether the camera image should be horizontally mirrored.
 - **Request Parameter**:
-    - `cameraHorizontalMirror` (bool): Whether to horizontally mirror (true/false).
+    - `camHFlip` (bool): Whether to horizontally mirror (true/false).
 - **Response**:
     - `200 OK`: Setting successful.
     - `400 Bad Request`: Request parameter error.
@@ -107,7 +108,7 @@ The ESP32-Cam's Web server provides multiple API interfaces for configuring and 
 - **Method**: `POST`
 - **Description**: Set whether the camera image should be vertically flipped.
 - **Request Parameter**:
-    - `cameraVerticalFlip` (bool): Whether to vertically flip (true/false).
+    - `camVFlip` (bool): Whether to vertically flip (true/false).
 - **Response**:
     - `200 OK`: Setting successful.
     - `400 Bad Request`: Request parameter error.
@@ -117,7 +118,7 @@ The ESP32-Cam's Web server provides multiple API interfaces for configuring and 
 - **Method**: `POST`
 - **Description**: Set the brightness of the camera.
 - **Request Parameter**:
-    - `cameraBrightness` (int): Brightness value (range 0-100).
+    - `camBrightness` (int): Brightness value (range -2-2).
 - **Response**:
     - `200 OK`: Setting successful.
     - `400 Bad Request`: Request parameter error.
@@ -127,7 +128,7 @@ The ESP32-Cam's Web server provides multiple API interfaces for configuring and 
 - **Method**: `POST`
 - **Description**: Set the contrast of the camera.
 - **Request Parameter**:
-    - `cameraContrast` (int): Contrast value (range -2-2).
+    - `camContrast` (int): Contrast value (range -2-2).
 - **Response**:
     - `200 OK`: Setting successful.
     - `400 Bad Request`: Request parameter error.
@@ -137,7 +138,7 @@ The ESP32-Cam's Web server provides multiple API interfaces for configuring and 
 - **Method**: `POST`
 - **Description**: Set the saturation of the camera.
 - **Request Parameter**:
-    - `cameraSaturation` (int): Saturation value (range -2-2).
+    - `camSaturation` (int): Saturation value (range -2-2).
 - **Response**:
     - `200 OK`: Setting successful.
     - `400 Bad Request`: Request parameter error.
@@ -147,7 +148,7 @@ The ESP32-Cam's Web server provides multiple API interfaces for configuring and 
 - **Method**: `POST`
 - **Description**: Set the sharpness of the camera.
 - **Request Parameter**:
-    - `cameraSharpness` (int): Sharpness value (range -2-2).
+    - `camSharpness` (int): Sharpness value (range -2-2).
 - **Response**:
     - `200 OK`: Setting successful.
     - `400 Bad Request`: Request parameter error.

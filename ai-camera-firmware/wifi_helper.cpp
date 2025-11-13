@@ -60,6 +60,7 @@ bool wifiConnectSta(String ssid, String password){
 
 bool wifiConnectAp(String ssid, String password, int channel){
   String temp = ssid + '-' + macPrefix;
+  Serial.println(temp);
   WiFi.softAP(temp.c_str(), password.c_str(), channel);
   apIp = WiFi.softAPIP().toString();
   isConnected = true;
