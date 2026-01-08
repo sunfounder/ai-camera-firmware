@@ -8,8 +8,6 @@ This is a firmware read convert uart command and create a websocket server. It's
  - ArduinoJson (7.4.2)
 
 ## Flash Setting
-  Pay attention to enable PSRAM, select "Huge APP" Partition Scheme
-
 - Board: "ESP32 Dev Module"
 - Upload Speed: "921600"
 - CPU Frequency: "240MHz (WiFi/BT)"
