@@ -80,8 +80,8 @@ void register_camera(const pixformat_t pixel_fromat,
   s->set_hmirror(s, hflip);
   // initial sensors are flipped vertically and colors are a bit saturated
   if (s->id.PID == OV3660_PID) {
-    s->set_brightness(s, 1);   // up the blightness just a bit
-    s->set_saturation(s, -2);  // lower the saturation
+    s->set_brightness(s, -2);   // up the blightness just a bit
+    // s->set_saturation(s, -2);  // lower the saturation
   }
 
   xQueueFrameO = frame_o;
