@@ -76,12 +76,13 @@ void register_camera(const pixformat_t pixel_fromat,
   }
 
   sensor_t *s = esp_camera_sensor_get();
-  s->set_vflip(s, vflip);  // flip it back
+  s->set_vflip(s, vflip);
   s->set_hmirror(s, hflip);
   // initial sensors are flipped vertically and colors are a bit saturated
   if (s->id.PID == OV3660_PID) {
-    s->set_brightness(s, -2);   // up the blightness just a bit
-    // s->set_saturation(s, -2);  // lower the saturation
+    s->set_brightness(s, -1);   // up the blightness just a bit
+    s->set_saturation(s, 3);  // lower the saturation
+    s->set_hmirror(s, hflip+1&1);
   }
 
   xQueueFrameO = frame_o;
