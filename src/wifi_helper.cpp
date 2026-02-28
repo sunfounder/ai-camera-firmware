@@ -71,21 +71,22 @@ bool wifiConnectAp(String ssid, String password, int channel) {
 
 int wifiSetHostname(String hostname) { return MDNS.begin(hostname); }
 
-uint8_t wifiScan() { return WiFi.scanNetworks(); }
+int wifiScan() {
+  WiFi.scanDelete();
+  return WiFi.scanNetworks();
+}
 
 void wifiScanClean() { WiFi.scanDelete(); }
 
-String wifiGetScannedSSID(uint8_t index) { return WiFi.SSID(index); }
+String wifiGetScannedSSID(int index) { return WiFi.SSID(index); }
 
-int32_t wifiGetScannedRSSI(uint8_t index) { return WiFi.RSSI(index); }
+int32_t wifiGetScannedRSSI(int index) { return WiFi.RSSI(index); }
 
-uint8_t wifiGetScannedSecure(uint8_t index) {
-  return WiFi.encryptionType(index);
-}
+uint8_t wifiGetScannedSecure(int index) { return WiFi.encryptionType(index); }
 
-int32_t wifiGetScannedChannel(uint8_t index) { return WiFi.channel(index); }
+int32_t wifiGetScannedChannel(int index) { return WiFi.channel(index); }
 
-String wifiGetScannedBSSID(uint8_t index) { return WiFi.BSSIDstr(index); }
+String wifiGetScannedBSSID(int index) { return WiFi.BSSIDstr(index); }
 
 void wifiCheckSta() {
   if (WiFi.status() != WL_CONNECTED) {

@@ -7,7 +7,7 @@
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
                       size_t length);
 
-WebSocketsServer ws = WebSocketsServer(8765);
+WebSocketsServer *ws = nullptr;
 
 uint8_t client_num = 0;
 bool wsConnected = false;
@@ -42,10 +42,7 @@ void checkPingPong() {
   if (millis() - lastPingPong > TIMEOUT) {
     lastPingPong = millis();
     isPingPingOK = false;
-#ifdef DEBUG
-    Serial.println("[DEBUG] [WS] PingPong timeout");
-#endif
-    Serial.print("[DISCONNECTED] timeout");
+    Serial.println("[DISCONNECTED] PingPong timeout");
   }
 }
 
@@ -53,7 +50,9 @@ WS_Server::WS_Server() {}
 
 void WS_Server::close() {
   wsConnected = false;
-  ws.close();
+  if (ws != nullptr) {
+    ws->close();
+  }
   delay(10);
 }
 
@@ -61,66 +60,86 @@ void WS_Server::begin(int port, String _name, String _type, String _check) {
   wsName = _name;
   wsType = _type;
   wsCheck = _check;
-  ws.close();
-  ws.begin();
-  ws.onEvent(onWebSocketEvent);
+
+  // 关闭现有的WebSocket服务器
+  if (ws != nullptr) {
+    ws->close();
+    delete ws;
+    ws = nullptr;
+  }
+
+  // 创建新的WebSocket服务器实例，使用指定的端口
+  ws = new WebSocketsServer(port);
+  ws->begin();
+  ws->onEvent(onWebSocketEvent);
+
   pingPongTimer.attach_ms(20, checkPingPong);
 }
 
-void WS_Server::loop() { ws.loop(); }
+void WS_Server::loop() {
+  if (ws != nullptr) {
+    ws->loop();
+  }
+}
 
-void WS_Server::send(String data) { ws.sendTXT(client_num, data); }
+void WS_Server::send(String data) {
+  if (ws != nullptr) {
+    ws->sendTXT(client_num, data);
+  }
+}
 
 // https://github.com/Links2004/arduinoWebSockets/blob/master/src/WebSocketsServer.cpp#L230
 void WS_Server::sendBIN(uint8_t *payload, size_t length) {
   // bool WebSocketsServerCore::sendBIN(uint8_t num, const uint8_t * payload,
   // size_t length)
-  ws.sendBIN(client_num, payload, length);
+  if (ws != nullptr) {
+    ws->sendBIN(client_num, payload, length);
+  }
 }
 
 bool WS_Server::isConnected() { return wsConnected; }
 
 void handleConfig(String payload) {
   // Serial.println("SET+ config from websocket");
-  DynamicJsonDocument config(WS_BUFFER_SIZE);
-  DynamicJsonDocument result(WS_BUFFER_SIZE);
+  JsonDocument config;
+  JsonDocument result;
   deserializeJson(config, payload);
 
   result["state"] = F("ERROR");
-  JsonArray errors = result.createNestedArray("errors");
+  JsonArray errors = result["errors"].to<JsonArray>();
 
   // Get name
-  if (config.containsKey("name")) {
+  if (config["name"].is<String>()) {
     String name = config["name"].as<String>();
     settingsSetName(name);
     result["state"] = F("OK");
   }
-  if (config.containsKey("type")) {
+  if (config["type"].is<String>()) {
     String type = config["type"].as<String>();
     settingsSetType(type);
     result["state"] = F("OK");
   }
-  if (config.containsKey("apSsid")) {
+  if (config["apSsid"].is<String>()) {
     String ap_ssid = config["apSsid"].as<String>();
     settingsSetApSsid(ap_ssid);
     result["state"] = F("OK");
   }
-  if (config.containsKey("apPassword")) {
+  if (config["apPassword"].is<String>()) {
     String ap_password = config["apPassword"].as<String>();
     settingsSetApPassword(ap_password);
     result["state"] = F("OK");
   }
-  if (config.containsKey("staSsid")) {
+  if (config["staSsid"].is<String>()) {
     String wifi_ssid = config["staSsid"].as<String>();
     settingsSetStaSsid(wifi_ssid);
     result["state"] = F("OK");
   }
-  if (config.containsKey("staPassword")) {
+  if (config["staPassword"].is<String>()) {
     String wifi_password = config["staPassword"].as<String>();
     settingsSetStaPassword(wifi_password);
     result["state"] = F("OK");
   }
-  if (config.containsKey("command")) {
+  if (config["command"].is<String>()) {
     String command = config["command"].as<String>();
     if (command == "restart-sta") {
       // Serial.println("restart-sta");
@@ -145,12 +164,12 @@ void handleConfig(String payload) {
         errors.add(F("STA_CONNECT_ERROR"));
       }
     } else if (command == "scan-wifi") {
-      uint8_t count = wifiScan();
+      int count = wifiScan();
       result["state"] = F("OK");
-      JsonArray networks = result.createNestedArray("networks");
+      JsonArray networks = result["networks"].to<JsonArray>();
       Serial.printf("scan-wifi count: %d\n", count);
-      for (uint8_t i = 0; i < count; i++) {
-        JsonObject network = networks.createNestedObject();
+      for (int i = 0; i < count; i++) {
+        JsonObject network = networks.add<JsonObject>();
         network["ssid"] = wifiGetScannedSSID(i);
         network["rssi"] = wifiGetScannedRSSI(i);
         network["secure"] = wifiGetScannedSecure(i);
@@ -172,13 +191,15 @@ void handleConfig(String payload) {
   }
   String result_str;
   serializeJson(result, result_str);
-  ws.sendTXT(client_num, result_str);
+  if (ws != nullptr) {
+    ws->sendTXT(client_num, result_str);
+  }
   Serial.println(result_str);
 }
 
 void handleSunFounderController(String payload) {
   // ------------- send simplified text -------------
-  DynamicJsonDocument recvBuffer(WS_BUFFER_SIZE);
+  JsonDocument recvBuffer;
   deserializeJson(recvBuffer, payload);
   String result = "WS+";
 
@@ -219,18 +240,17 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
   client_num = cn;
 
   // send pong
-  // if (wsConnected == true) {
   uint32_t _time = millis();
   if (_time - last_pong_time > PONG_INTERVAL) {
     String msg = "pong " + String(_time);
-    ws.sendTXT(client_num, msg);
+    if (ws != nullptr) {
+      ws->sendTXT(client_num, msg);
+    }
     last_pong_time = millis();
 #ifdef DEBUG
     Serial.println("[DEBUG] [WS] send PONG");
 #endif
-    // Serial.println(msg);
   }
-  // }
 
   switch (type) {
   // Client has disconnected
@@ -239,16 +259,20 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
 #ifdef DEBUG
     Serial.println("[DEBUG] [WS] Disconnected!");
 #endif
-    IPAddress remoteIp = ws.remoteIP(client_num);
+    // IPAddress remoteIp = ws.remoteIP(client_num);
     Serial.print("[DISCONNECTED] ");
-    Serial.println(remoteIp.toString());
+    // Serial.println(remoteIp.toString());
     wsConnected = false;
+    client_num = 0;
     break;
   }
   // New client has connected
   case WStype_CONNECTED: {
     LED_STATUS_CONNECTED();
-    IPAddress remoteIp = ws.remoteIP(client_num);
+    IPAddress remoteIp;
+    if (ws != nullptr) {
+      remoteIp = ws->remoteIP(client_num);
+    }
 #ifdef DEBUG
     Serial.print("[DEBUG] [WS] Connection from ");
     Serial.println(remoteIp.toString());
@@ -261,9 +285,10 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
                         wsCheck + "\"," + "\"video\":\"" + videoUrl + "\"," +
                         "\"StaIp\":\"" + wifiGetStaIp() + "\"," +
                         "\"VideoTemplate\":\"" + videoTemplate + "\"" + "}";
-    // ws.sendTXT(client_num, check_info);
     delay(100);
-    ws.sendTXT(client_num, check_info);
+    if (ws != nullptr) {
+      ws->sendTXT(client_num, check_info);
+    }
     wsConnected = true;
     break;
   }

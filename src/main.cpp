@@ -308,7 +308,9 @@ void handleSet(String cmd) {
   }
   // PORT
   else if (_4_chars_cmd == "PORT") {
-    Serial.println("[OK] PORT is deprecated");
+    port = cmd.substring(4).toInt();
+    debug("Set port: ", String(port));
+    Serial.println("[OK]");
     return;
   }
   // MODE
@@ -425,7 +427,7 @@ void handleSet(String cmd) {
   }
   // ------------ 7 characters command  ------------
   String _7_chars_cmd = cmd.substring(0, 7);
-  // SSID
+  // STASSID
   if (_7_chars_cmd == "STASSID") {
     if (!settingsStaSsidChanged() || inited == true) {
       settingsSetStaSsid(temp);
@@ -438,7 +440,7 @@ void handleSet(String cmd) {
   }
 
   // ----------- if no retrun before -----------
-  Serial.println("[ERROR] SET+ Unknown command");
+  Serial.printf("[ERROR] SET+ Unknown command: %s", cmd.c_str());
 }
 
 void start() {

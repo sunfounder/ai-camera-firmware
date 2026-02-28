@@ -4,7 +4,7 @@
 #include "wifi_helper.h"
 #include <WebSocketsServer.h>
 
-// #define DEBUG
+#define DEBUG
 
 #define REGIONS                                                                \
   (char[26]){'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',  \
