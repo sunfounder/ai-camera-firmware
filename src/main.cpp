@@ -308,9 +308,7 @@ void handleSet(String cmd) {
   }
   // PORT
   else if (_4_chars_cmd == "PORT") {
-    port = cmd.substring(4).toInt();
-    debug("Set port: ", String(port));
-    Serial.println("[OK]");
+    Serial.println("[OK] PORT is deprecated");
     return;
   }
   // MODE
