@@ -1,17 +1,17 @@
 #include "settings.h"
 
-#include <Preferences.h>
-#include <WebServer.h>
-#include <Update.h>
 #include "esp_camera.h"
+#include <Preferences.h>
+#include <Update.h>
+#include <WebServer.h>
 
 #include "defaults.h"
-#include "wifi_helper.h"
-#include "www/index.h"
-#include "www/favicon.h"
-#include "www/css.h"
-#include "www/js.h"
 #include "log.h"
+#include "wifi_helper.h"
+#include "www/css.h"
+#include "www/favicon.h"
+#include "www/index.h"
+#include "www/js.h"
 
 #define ENABLE_CORS
 
@@ -42,14 +42,16 @@ bool needReboot = false;
 
 void setCrossOriginHeaders() {
   server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT, DELETE");
-  server.sendHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  server.sendHeader("Access-Control-Allow-Methods",
+                    "OPTIONS, GET, POST, PUT, DELETE");
+  server.sendHeader("Access-Control-Allow-Headers",
+                    "Origin, X-Requested-With, Content-Type, Accept");
 }
 
 void returnOk() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(200, "text/plain", "OK");
 }
@@ -58,9 +60,9 @@ void returnNameNotFound(String name) {
   String msg = String("Bad Request") + name + " not found";
   error(msg.c_str());
 
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(400, "text/plain", msg.c_str());
 }
@@ -69,20 +71,21 @@ void returnSetError(String name) {
   preferences.begin(SETTING_PREFERENCES, false);
   size_t free = preferences.freeEntries();
   preferences.end();
-  String msg = String("Set \"") + name + "\" error, free entries: " + String(free);
+  String msg =
+      String("Set \"") + name + "\" error, free entries: " + String(free);
   error(msg.c_str());
 
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(502, "text/plain", msg.c_str());
 }
 
 void postStringHandler(const char *name, bool (*callback)(String)) {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   if (server.hasArg(name)) {
     bool result = callback(server.arg(name));
     if (result) {
@@ -95,9 +98,9 @@ void postStringHandler(const char *name, bool (*callback)(String)) {
   }
 }
 void postIntHandler(const char *name, bool (*callback)(int)) {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   if (server.hasArg(name)) {
     int value = server.arg(name).toInt();
     bool result = callback(value);
@@ -111,9 +114,9 @@ void postIntHandler(const char *name, bool (*callback)(int)) {
   }
 }
 void postBoolHandler(const char *name, bool (*callback)(bool)) {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   if (server.hasArg(name)) {
     String value = server.arg(name);
     bool bValue = (value == "true" || value == "1");
@@ -129,149 +132,150 @@ void postBoolHandler(const char *name, bool (*callback)(bool)) {
 }
 
 void handleGetIndex() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
-  server.send_P(200, "text/html", (const char*)index_html_gz, index_html_gz_len);
+  server.send_P(200, "text/html", (const char *)index_html_gz,
+                index_html_gz_len);
 }
 void handleGetJs() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
-  server.send_P(200, "text/javascript", (const char*)main_js_gz, main_js_gz_len);
+  server.send_P(200, "text/javascript", (const char *)main_js_gz,
+                main_js_gz_len);
 }
 void handleGetCss() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
-  server.send_P(200, "text/css", (const char*)main_css_gz, main_css_gz_len);
+  server.send_P(200, "text/css", (const char *)main_css_gz, main_css_gz_len);
 }
 void handleGetFavicon() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONTENT_ENCODING, HEADER_CONTENT_ENCODING_GZIP);
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
-  server.send_P(200, "image/x-icon", (const char*)favicon_ico_gz, favicon_ico_gz_len);
+  server.send_P(200, "image/x-icon", (const char *)favicon_ico_gz,
+                favicon_ico_gz_len);
 }
 void handleGetSettings() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(
-    200, "application/json",
-    String("{") + 
-      "\"version\":\"" + version + "\"," +
-      "\"name\":\"" + name + "\"," +
-      "\"type\":\"" + type + "\"," +
-      "\"apSsid\":\"" + apSsid + "\"," +
-      "\"apPassword\":\"" + apPassword + "\"," +
-      "\"apChannel\":" + String(apChannel) + "," +
-      "\"staSsid\":\"" + staSsid + "\"," +
-      "\"staPassword\":\"" + staPassword + "\"," +
-      "\"cameraHorizontalMirror\":" + (camHFlip ? "true" : "false") + "," +
-      "\"cameraVerticalFlip\":" + (camVFlip ? "true" : "false") + "," +
-      "\"cameraBrightness\":" + String(camBrightness) + "," +
-      "\"cameraContrast\":" + String(camContrast) + "," +
-      "\"cameraSaturation\":" + String(camSaturation) + "," +
-      "\"cameraSharpness\":" + String(camSharpness) + "," +
-      "\"macAddress\":\"" + wifiGetMacAddress() + "\"," + // Mac address: xx:xx:xx:xx:xx:xx
-      "\"macPrefix\":\"" + wifiGetMacPrefix() + "\"," + // Mac address prefix: xxxxxx
-      "\"staConnected\":\"" + (wifiIsStaConnected() ? "true" : "false") + "\"," +
-      "\"ipAddress\":\"" + wifiGetStaIp() + "\"," +
-      "\"needReboot\":\"" + (needReboot ? "true" : "false") + "\""
-    "}"
-  );
+      200, "application/json",
+      String("{") + "\"version\":\"" + version + "\"," + "\"name\":\"" + name +
+          "\"," + "\"type\":\"" + type + "\"," + "\"apSsid\":\"" + apSsid +
+          "\"," + "\"apPassword\":\"" + apPassword + "\"," +
+          "\"apChannel\":" + String(apChannel) + "," + "\"staSsid\":\"" +
+          staSsid + "\"," + "\"staPassword\":\"" + staPassword + "\"," +
+          "\"cameraHorizontalMirror\":" + (camHFlip ? "true" : "false") + "," +
+          "\"cameraVerticalFlip\":" + (camVFlip ? "true" : "false") + "," +
+          "\"cameraBrightness\":" + String(camBrightness) + "," +
+          "\"cameraContrast\":" + String(camContrast) + "," +
+          "\"cameraSaturation\":" + String(camSaturation) + "," +
+          "\"cameraSharpness\":" + String(camSharpness) + "," +
+          "\"macAddress\":\"" + wifiGetMacAddress() +
+          "\"," + // Mac address: xx:xx:xx:xx:xx:xx
+          "\"macPrefix\":\"" + wifiGetMacPrefix() +
+          "\"," + // Mac address prefix: xxxxxx
+          "\"staConnected\":\"" + (wifiIsStaConnected() ? "true" : "false") +
+          "\"," + "\"ipAddress\":\"" + wifiGetStaIp() + "\"," +
+          "\"needReboot\":\"" + (needReboot ? "true" : "false") +
+          "\""
+          "}");
 }
 void handleSetName() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postStringHandler("name", settingsSetName);
 }
 void handleSetType() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postStringHandler("type", settingsSetType);
 }
 void handleSetApSsid() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postStringHandler("apSsid", settingsSetApSsid);
 }
 void handleSetApPassword() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postStringHandler("apPassword", settingsSetApPassword);
 }
 void handleSetApChannel() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postIntHandler("apChannel", settingsSetApChannel);
 }
 void handleSetCameraHorizontalMirror() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postBoolHandler("camHFlip", settingsSetCameraHorizontalMirror);
   sensor_t *s = esp_camera_sensor_get();
   s->set_hmirror(s, camHFlip);
 }
 void handleSetCameraVerticalFlip() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postBoolHandler("camVFlip", settingsSetCameraVerticalFlip);
   sensor_t *s = esp_camera_sensor_get();
   s->set_vflip(s, camVFlip);
 }
 void handleSetCameraBrightness() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postIntHandler("camBrightness", settingsSetCameraBrightness);
   sensor_t *s = esp_camera_sensor_get();
   s->set_brightness(s, camBrightness);
 }
 void handleSetCameraContrast() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postIntHandler("camContrast", settingsSetCameraContrast);
   sensor_t *s = esp_camera_sensor_get();
   s->set_contrast(s, camContrast);
 }
 void handleSetCameraSaturation() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postIntHandler("camSaturation", settingsSetCameraSaturation);
   sensor_t *s = esp_camera_sensor_get();
   s->set_saturation(s, camSaturation);
 }
 void handleSetCameraSharpness() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   postIntHandler("camSharpness", settingsSetCameraSharpness);
   sensor_t *s = esp_camera_sensor_get();
   s->set_sharpness(s, camSharpness);
 }
 void handleUpdateReturn() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   if (Update.hasError()) {
     String msg = "Update failed: " + String(Update.errorString());
@@ -280,12 +284,11 @@ void handleUpdateReturn() {
   } else {
     server.send(200, "text/plain", "OK");
   }
-
 }
 void handleUpdate() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   HTTPUpload &upload = server.upload();
   if (upload.status == UPLOAD_FILE_START) {
     Serial.printf("Update: %s\n", upload.filename.c_str());
@@ -298,8 +301,7 @@ void handleUpdate() {
     }
   } else if (upload.status == UPLOAD_FILE_WRITE) {
     /* flashing firmware to ESP*/
-    if (Update.write(upload.buf, upload.currentSize) !=
-        upload.currentSize) {
+    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
       String msg = "Update write failed: " + String(Update.errorString());
       Serial.println(msg);
       server.send(400, "text/plain", msg.c_str());
@@ -319,7 +321,7 @@ void handleUpdate() {
 void handleScanWifi() {
   uint8_t count = wifiScan();
   String json = "[";
-  for (uint8_t i=0; i<count; i++) {
+  for (uint8_t i = 0; i < count; i++) {
     json += "{";
     json += "\"ssid\":\"" + wifiGetScannedSSID(i) + "\",";
     json += "\"rssi\":" + String(wifiGetScannedRSSI(i)) + ",";
@@ -332,9 +334,9 @@ void handleScanWifi() {
     json.remove(json.length() - 1); // Remove the last comma
   }
   json += "]";
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(200, "application/json", json);
 }
@@ -342,9 +344,9 @@ void handleSetSta() {
   String ssid = server.arg("ssid");
   String password = server.arg("password");
 
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   if (ssid.length() <= 0 || ssid.length() > 32) {
     server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
     server.send(400, "text/plain", "SSID length should be between 1 and 32.");
@@ -352,7 +354,8 @@ void handleSetSta() {
   }
   if (password.length() <= 7 || password.length() > 64) {
     server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
-    server.send(400, "text/plain", "Password length should be between 8 and 64.");
+    server.send(400, "text/plain",
+                "Password length should be between 8 and 64.");
     return;
   }
   bool r = wifiConnectSta(ssid, password);
@@ -367,9 +370,9 @@ void handleSetSta() {
   }
 }
 void handleRestart() {
-  #ifdef ENABLE_CORS
+#ifdef ENABLE_CORS
   setCrossOriginHeaders();
-  #endif
+#endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
   server.send(200, "text/plain", "OK");
   delay(1000);
@@ -393,7 +396,8 @@ void settingsBegin(String _version) {
   server.on("/set-apSsid", HTTP_POST, handleSetApSsid);
   server.on("/set-apPassword", HTTP_POST, handleSetApPassword);
   server.on("/set-apChannel", HTTP_POST, handleSetApChannel);
-  server.on("/set-cameraHorizontalMirror", HTTP_POST, handleSetCameraHorizontalMirror);
+  server.on("/set-cameraHorizontalMirror", HTTP_POST,
+            handleSetCameraHorizontalMirror);
   server.on("/set-cameraVerticalFlip", HTTP_POST, handleSetCameraVerticalFlip);
   server.on("/set-cameraBrightness", HTTP_POST, handleSetCameraBrightness);
   server.on("/set-cameraContrast", HTTP_POST, handleSetCameraContrast);
@@ -417,9 +421,11 @@ void settingsReadConfig() {
   staPassword = preferences.getString("staPassword", DEFAULT_STA_PASSWORD);
   camHFlip = preferences.getBool("camHFlip", DEFAULT_CAMERA_HORIZONTAL_MIRROR);
   camVFlip = preferences.getBool("camVFlip", DEFAULT_CAMERA_VERTICAL_FLIP);
-  camBrightness = preferences.getInt("camBrightness", DEFAULT_CAMERA_BRIGHTNESS);
+  camBrightness =
+      preferences.getInt("camBrightness", DEFAULT_CAMERA_BRIGHTNESS);
   camContrast = preferences.getInt("camContrast", DEFAULT_CAMERA_CONTRAST);
-  camSaturation = preferences.getInt("camSaturation", DEFAULT_CAMERA_SATURATION);
+  camSaturation =
+      preferences.getInt("camSaturation", DEFAULT_CAMERA_SATURATION);
   camSharpness = preferences.getInt("camSharpness", DEFAULT_CAMERA_SHARPNESS);
   preferences.end();
 }

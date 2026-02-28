@@ -19,15 +19,15 @@
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.5.3.20"
+#define VERSION "1.5.3.21"
 
-#include "settings.h"
+#include "camera.h"
 #include "camera_server.h"
-#include "rom/rtc.h" // rst reason
 #include "led_status.h"
+#include "rom/rtc.h" // rst reason
+#include "settings.h"
 #include "soc/rtc_cntl_reg.h"
 #include "soc/soc.h" // disable brownout detector
-#include "camera.h"
 #include "wifi_helper.h"
 #include "ws_server.h"
 
@@ -62,6 +62,9 @@ String rxBuf = "";
 
 /* ----------------------- Functions -------------------------------- */
 #define IsStartWith(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
+void factoryResetCheck();
+void wsServerCameraHandler();
+void serialReceivedHandler();
 void cameraInit();
 String serialRead();
 void handleSet(String cmd);
