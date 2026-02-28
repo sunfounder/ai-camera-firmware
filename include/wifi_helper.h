@@ -8,7 +8,7 @@
 void wifiBegin();
 void wifiCheckSta();
 bool wifiConnectAp(String ssid, String password, int channel = 1);
-bool wifiConnectSta(String ssid, String password);
+bool wifiConnectSta(String ssid, String password, bool wait = false);
 int wifiSetHostname(String hostname);
 int wifiScan();
 void wifiScanClean();
@@ -25,4 +25,3 @@ String wifiGetApIp();
 String wifiGetMacAddress();
 String wifiGetMacPrefix();
 bool wifiIsStaConnected();
-bool wifiIsConnected();

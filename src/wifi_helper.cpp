@@ -7,7 +7,6 @@ String staIp = "";
 String macPrefix = "";
 String macAddress = "";
 bool staConnected = false;
-bool isConnected = false;
 
 void wifiBegin() {
   WiFi.mode(WIFI_AP_STA);
@@ -18,7 +17,7 @@ void wifiBegin() {
   macPrefix = macPrefix.substring(6, 12);
 }
 
-bool wifiConnectSta(String ssid, String password) {
+bool wifiConnectSta(String ssid, String password, bool wait) {
 
 #ifdef DEBUG
   Serial.println(F("Connecting to WiFi ..."));
@@ -32,7 +31,12 @@ bool wifiConnectSta(String ssid, String password) {
   WiFi.disconnect();
   WiFi.begin(ssid.c_str(), password.c_str());
 
-  // Wait some time to connect to wifi
+  // Skip waiting if not required
+  if (!wait) {
+    return true;
+  }
+
+  // Wait for wifi to connect
   int count = 0;
 #ifdef DEBUG
   Serial.print("[DEBUG] Connecting.");
@@ -54,7 +58,6 @@ bool wifiConnectSta(String ssid, String password) {
 #ifdef DEBUG
   Serial.println("");
 #endif
-  isConnected = true;
   staConnected = true;
   staIp = WiFi.localIP().toString();
   return true;
@@ -65,7 +68,6 @@ bool wifiConnectAp(String ssid, String password, int channel) {
   Serial.println(temp);
   WiFi.softAP(temp.c_str(), password.c_str(), channel);
   apIp = WiFi.softAPIP().toString();
-  isConnected = true;
   return true;
 }
 
@@ -92,9 +94,14 @@ int32_t wifiGetScannedChannel(int index) { return WiFi.channel(index); }
 String wifiGetScannedBSSID(int index) { return WiFi.BSSIDstr(index); }
 
 void wifiCheckSta() {
-  if (WiFi.status() != WL_CONNECTED) {
-    if (isConnected == true) {
-      isConnected = false;
+  if (WiFi.status() == WL_CONNECTED) {
+    if (staConnected == false) {
+      staConnected = true;
+      staIp = WiFi.localIP().toString();
+      Serial.println("[CONNECTED] wifi sta connected");
+    }
+  } else {
+    if (staConnected == true) {
       staConnected = false;
       WiFi.disconnect();
       Serial.println("[DISCONNECTED] wifi disconnected");
@@ -111,5 +118,3 @@ String wifiGetMacPrefix() { return macPrefix; }
 String wifiGetMacAddress() { return macAddress; }
 
 bool wifiIsStaConnected() { return staConnected; }
-
-bool wifiIsConnected() { return isConnected; }
