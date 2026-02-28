@@ -72,8 +72,11 @@ bool wifiConnectAp(String ssid, String password, int channel) {
 int wifiSetHostname(String hostname) { return MDNS.begin(hostname); }
 
 int wifiScan() {
+  int count = 0;
+  WiFi.disconnect();
   WiFi.scanDelete();
-  return WiFi.scanNetworks();
+  count = WiFi.scanNetworks();
+  return count;
 }
 
 void wifiScanClean() { WiFi.scanDelete(); }

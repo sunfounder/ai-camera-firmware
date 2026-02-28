@@ -167,7 +167,6 @@ void handleConfig(String payload) {
       int count = wifiScan();
       result["state"] = F("OK");
       JsonArray networks = result["networks"].to<JsonArray>();
-      Serial.printf("scan-wifi count: %d\n", count);
       for (int i = 0; i < count; i++) {
         JsonObject network = networks.add<JsonObject>();
         network["ssid"] = wifiGetScannedSSID(i);
@@ -175,11 +174,6 @@ void handleConfig(String payload) {
         network["secure"] = wifiGetScannedSecure(i);
         network["channel"] = wifiGetScannedChannel(i);
         network["bssid"] = wifiGetScannedBSSID(i);
-        Serial.printf(
-            "ssid: %s, rssi: %d, secure: %d, channel: %d, bssid: %s\n",
-            wifiGetScannedSSID(i).c_str(), wifiGetScannedRSSI(i),
-            wifiGetScannedSecure(i), wifiGetScannedChannel(i),
-            wifiGetScannedBSSID(i).c_str());
       }
     } else if (command == "scan-clear") {
       wifiScanClean();
