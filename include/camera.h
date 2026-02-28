@@ -1,17 +1,19 @@
 #pragma once
 
-#include <Arduino.h>
 #include "esp_camera.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
+#include <Arduino.h>
 
 #include "settings.h"
 
 // #define XCLK_FREQ_HZ 20000000
 // #define XCLK_FREQ_HZ 15000000
-#define XCLK_FREQ_HZ 12000000 // The test found that the lower the frequency, the faster the frame rate
+#define XCLK_FREQ_HZ                                                           \
+  12000000 // The test found that the lower the frequency, the faster the frame
+           // rate
 
 // #define JPEG_QUALITY 4 // The lower the value, the higher the quality
 #define JPEG_QUALITY 10
@@ -58,10 +60,9 @@
 
 void register_camera(const pixformat_t pixel_fromat,
                      const framesize_t frame_size, const uint8_t fb_count,
-                     const QueueHandle_t frame_o, const int vflip, const int hflip,
-                     const int d0, const int d1, const int d2, const int d3,
-                     const int d4, const int d5, const int d6, const int d7,
-                     const int xclk, const int pclk, const int vsync,
-                     const int href, const int sda, const int scl,
-                     const int pwdn, const int reset);
-
+                     const QueueHandle_t frame_o, const int vflip,
+                     const int hflip, const int d0, const int d1, const int d2,
+                     const int d3, const int d4, const int d5, const int d6,
+                     const int d7, const int xclk, const int pclk,
+                     const int vsync, const int href, const int sda,
+                     const int scl, const int pwdn, const int reset);

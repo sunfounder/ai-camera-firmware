@@ -1,11 +1,11 @@
 #include "camera_server.h"
 
+#include "camera.h"
 #include "esp_http_server.h"
 #include "esp_timer.h"
 #include "fb_gfx.h"
 #include "img_converters.h"
 #include "sdkconfig.h"
-#include "camera.h"
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
 #include "esp32-hal-log.h"
@@ -179,9 +179,9 @@ void register_httpd(const QueueHandle_t frame_i, const QueueHandle_t frame_o,
                              .user_ctx = NULL};
 
   httpd_uri_t mjpg_uri = {.uri = "/mjpg",
-                            .method = HTTP_GET,
-                            .handler = stream_handler,
-                            .user_ctx = NULL};
+                          .method = HTTP_GET,
+                          .handler = stream_handler,
+                          .user_ctx = NULL};
 
   config.server_port = 9000;
   config.ctrl_port = 9000;
@@ -190,5 +190,4 @@ void register_httpd(const QueueHandle_t frame_i, const QueueHandle_t frame_o,
     httpd_register_uri_handler(mjpg_httpd, &mjpg_uri);
     httpd_register_uri_handler(mjpg_httpd, &capture_uri);
   }
-  
 }

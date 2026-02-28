@@ -1,13 +1,13 @@
 #pragma once
 
+#include <ESPmDNS.h> // mDNS
 #include <WiFi.h>
-#include <ESPmDNS.h>       // mDNS
 
 #include "log.h"
 
 void wifiBegin();
 void wifiCheckSta();
-bool wifiConnectAp(String ssid, String password, int channel = 1); 
+bool wifiConnectAp(String ssid, String password, int channel = 1);
 bool wifiConnectSta(String ssid, String password);
 int wifiSetHostname(String hostname);
 uint8_t wifiScan();

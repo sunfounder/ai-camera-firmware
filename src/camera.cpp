@@ -18,12 +18,12 @@ static void task_process_handler(void *arg) {
 
 void register_camera(const pixformat_t pixel_fromat,
                      const framesize_t frame_size, const uint8_t fb_count,
-                     const QueueHandle_t frame_o, const int vflip, const int hflip,
-                     const int d0, const int d1, const int d2, const int d3,
-                     const int d4, const int d5, const int d6, const int d7,
-                     const int xclk, const int pclk, const int vsync,
-                     const int href, const int sda, const int scl,
-                     const int pwdn, const int reset) {
+                     const QueueHandle_t frame_o, const int vflip,
+                     const int hflip, const int d0, const int d1, const int d2,
+                     const int d3, const int d4, const int d5, const int d6,
+                     const int d7, const int xclk, const int pclk,
+                     const int vsync, const int href, const int sda,
+                     const int scl, const int pwdn, const int reset) {
 
 #if CONFIG_CAMERA_MODULE_ESP_EYE || CONFIG_CAMERA_MODULE_ESP32_CAM_BOARD
   /* IO13, IO14 is designed for JTAG by default,
@@ -69,7 +69,7 @@ void register_camera(const pixformat_t pixel_fromat,
   config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
 
 #if CONFIG_IDF_TARGET_ESP32S3
-    config.fb_count = 2;
+  config.fb_count = 2;
 #endif
 #if defined(ESP32_S3_CAM)
   pinMode(13, INPUT_PULLUP);
@@ -98,7 +98,7 @@ void register_camera(const pixformat_t pixel_fromat,
   s->set_sharpness(s, settingsGetCameraSharpness());
   s->set_contrast(s, settingsGetCameraContrast());
 
-
   xQueueFrameO = frame_o;
-  xTaskCreatePinnedToCore(task_process_handler, TAG, 1 * 1024, NULL, 5, NULL, 1);
+  xTaskCreatePinnedToCore(task_process_handler, TAG, 1 * 1024, NULL, 5, NULL,
+                          1);
 }

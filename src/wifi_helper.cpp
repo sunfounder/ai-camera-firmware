@@ -9,7 +9,7 @@ String macAddress = "";
 bool staConnected = false;
 bool isConnected = false;
 
-void wifiBegin(){
+void wifiBegin() {
   WiFi.mode(WIFI_AP_STA);
   WiFi.begin();
   macAddress = WiFi.macAddress();
@@ -18,13 +18,15 @@ void wifiBegin(){
   macPrefix = macPrefix.substring(6, 12);
 }
 
-bool wifiConnectSta(String ssid, String password){
+bool wifiConnectSta(String ssid, String password) {
 
-  #ifdef DEBUG
+#ifdef DEBUG
   Serial.println(F("Connecting to WiFi ..."));
-  Serial.print(F("ssid:"));Serial.println(ssid);
-  Serial.print(F("psk:"));Serial.println(password);
-  #endif
+  Serial.print(F("ssid:"));
+  Serial.println(ssid);
+  Serial.print(F("psk:"));
+  Serial.println(password);
+#endif
 
   // Connect to wifi
   WiFi.disconnect();
@@ -32,33 +34,33 @@ bool wifiConnectSta(String ssid, String password){
 
   // Wait some time to connect to wifi
   int count = 0;
-  #ifdef DEBUG
+#ifdef DEBUG
   Serial.print("[DEBUG] Connecting.");
-  #endif
+#endif
   while (WiFi.status() != WL_CONNECTED) {
-    #ifdef DEBUG
-    Serial.print("."); 
-    #endif
+#ifdef DEBUG
+    Serial.print(".");
+#endif
     delay(500);
-    count ++;
-    if (count > 20){
-      #ifdef DEBUG
+    count++;
+    if (count > 20) {
+#ifdef DEBUG
       Serial.println("");
       Serial.println(WiFi.status());
-      #endif
+#endif
       return false;
     }
   }
-  #ifdef DEBUG
+#ifdef DEBUG
   Serial.println("");
-  #endif
+#endif
   isConnected = true;
   staConnected = true;
   staIp = WiFi.localIP().toString();
   return true;
 }
 
-bool wifiConnectAp(String ssid, String password, int channel){
+bool wifiConnectAp(String ssid, String password, int channel) {
   String temp = ssid + '-' + macPrefix;
   Serial.println(temp);
   WiFi.softAP(temp.c_str(), password.c_str(), channel);
@@ -67,9 +69,7 @@ bool wifiConnectAp(String ssid, String password, int channel){
   return true;
 }
 
-int wifiSetHostname(String hostname){
-  return MDNS.begin(hostname);
-}
+int wifiSetHostname(String hostname) { return MDNS.begin(hostname); }
 
 uint8_t wifiScan() { return WiFi.scanNetworks(); }
 
@@ -83,15 +83,11 @@ uint8_t wifiGetScannedSecure(uint8_t index) {
   return WiFi.encryptionType(index);
 }
 
-int32_t wifiGetScannedChannel(uint8_t index) {
-  return WiFi.channel(index);
-}
+int32_t wifiGetScannedChannel(uint8_t index) { return WiFi.channel(index); }
 
-String wifiGetScannedBSSID(uint8_t index) {
-  return WiFi.BSSIDstr(index);
-}
+String wifiGetScannedBSSID(uint8_t index) { return WiFi.BSSIDstr(index); }
 
-void wifiCheckSta(){
+void wifiCheckSta() {
   if (WiFi.status() != WL_CONNECTED) {
     if (isConnected == true) {
       isConnected = false;
@@ -102,26 +98,14 @@ void wifiCheckSta(){
   }
 }
 
-String wifiGetStaIp(){
-  return staIp;
-}
+String wifiGetStaIp() { return staIp; }
 
-String wifiGetApIp(){
-  return apIp;
-}
+String wifiGetApIp() { return apIp; }
 
-String wifiGetMacPrefix(){
-  return macPrefix;
-}
+String wifiGetMacPrefix() { return macPrefix; }
 
-String wifiGetMacAddress(){
-  return macAddress;
-}
+String wifiGetMacAddress() { return macAddress; }
 
-bool wifiIsStaConnected(){
-  return staConnected;
-}
+bool wifiIsStaConnected() { return staConnected; }
 
-bool wifiIsConnected(){
-  return isConnected;
-}
+bool wifiIsConnected() { return isConnected; }
