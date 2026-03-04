@@ -19,7 +19,7 @@
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.5.3.21"
+#define VERSION "1.5.3.22"
 
 #include "camera.h"
 #include "camera_server.h"
@@ -88,16 +88,8 @@ void setup() {
   videoTemplate = "http://ip:9000/mjpg";
 
   log_i(F("[Init]"));
-  log_i("Total heap: %d", ESP.getHeapSize());
-  log_i("Free heap: %d", ESP.getFreeHeap());
-  log_i("Total PSRAM: %d", ESP.getPsramSize());
-  log_i("Free PSRAM: %d", ESP.getFreePsram());
   wifiBegin();
   settingsBegin(VERSION);
-  log_i("Total heap: %d", ESP.getHeapSize());
-  log_i("Free heap: %d", ESP.getFreeHeap());
-  log_i("Total PSRAM: %d", ESP.getPsramSize());
-  log_i("Free PSRAM: %d", ESP.getFreePsram());
 
   // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable brownout detector
 
@@ -106,11 +98,6 @@ void setup() {
   pinMode(CAMERA_PIN_FLASH, OUTPUT); // init flash lamp
   digitalWrite(CAMERA_PIN_FLASH, 0); // 0:turn off flash lamp
 
-  log_i("Total heap: %d", ESP.getHeapSize());
-  log_i("Free heap: %d", ESP.getFreeHeap());
-  log_i("Total PSRAM: %d", ESP.getPsramSize());
-  log_i("Free PSRAM: %d", ESP.getFreePsram());
-
   wifiConnectAp(settingsGetApSsid(), settingsGetApPassword(),
                 settingsGetApChannel());
   wifiSetHostname(settingsGetName());
@@ -118,15 +105,7 @@ void setup() {
   // Check if factory reset needed
   factoryResetCheck();
 
-  log_i("Total heap: %d", ESP.getHeapSize());
-  log_i("Free heap: %d", ESP.getFreeHeap());
-  log_i("Total PSRAM: %d", ESP.getPsramSize());
-  log_i("Free PSRAM: %d", ESP.getFreePsram());
-  // log_i("psram: %d", psramFound());
-  // log_i("Total heap: %d", ESP.getHeapSize());
-  // log_i("Free heap: %d", ESP.getFreeHeap());
-  // log_i("Total PSRAM: %d", ESP.getPsramSize());
-  // log_i("Free PSRAM: %d", ESP.getFreePsram());
+  debug("Init done");
 }
 
 void loop() {
