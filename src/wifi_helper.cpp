@@ -1,6 +1,13 @@
 #include "wifi_helper.h"
 
-#define DEBUG
+#include <ESPmDNS.h>
+#include <WiFi.h>
+#include <WiFiMulti.h>
+
+#include "log.h"
+
+// #define DEBUG
+WiFiMulti wifiMulti;
 
 String apIp = "";
 String staIp = "";
@@ -28,8 +35,8 @@ bool wifiConnectSta(String ssid, String password, bool wait) {
 #endif
 
   // Connect to wifi
-  WiFi.disconnect();
-  WiFi.begin(ssid.c_str(), password.c_str());
+  wifiMulti.addAP(ssid.c_str(), password.c_str());
+  wifiMulti.run();
 
   // Skip waiting if not required
   if (!wait) {
@@ -37,35 +44,34 @@ bool wifiConnectSta(String ssid, String password, bool wait) {
   }
 
   // Wait for wifi to connect
-  int count = 0;
-#ifdef DEBUG
-  Serial.print("[DEBUG] Connecting.");
-#endif
-  while (WiFi.status() != WL_CONNECTED) {
-#ifdef DEBUG
-    Serial.print(".");
-#endif
-    delay(500);
-    count++;
-    if (count > 20) {
-#ifdef DEBUG
-      Serial.println("");
-      Serial.println(WiFi.status());
-#endif
-      return false;
-    }
-  }
-#ifdef DEBUG
-  Serial.println("");
-#endif
-  staConnected = true;
-  staIp = WiFi.localIP().toString();
+  //   int count = 0;
+  // #ifdef DEBUG
+  //   Serial.print("[DEBUG] Connecting.");
+  // #endif
+  //   while (wifiMulti.run() != WL_CONNECTED) {
+  // #ifdef DEBUG
+  //     Serial.print(".");
+  // #endif
+  //     delay(500);
+  //     count++;
+  //     if (count > 20) {
+  // #ifdef DEBUG
+  //       Serial.println("");
+  //       Serial.println(WiFi.status());
+  // #endif
+  //       return false;
+  //     }
+  //   }
+  // #ifdef DEBUG
+  //   Serial.println("");
+  // #endif
+  //   staConnected = true;
+  //   staIp = WiFi.localIP().toString();
   return true;
 }
 
 bool wifiConnectAp(String ssid, String password, int channel) {
   String temp = ssid + '-' + macPrefix;
-  Serial.println(temp);
   WiFi.softAP(temp.c_str(), password.c_str(), channel);
   apIp = WiFi.softAPIP().toString();
   return true;
@@ -94,15 +100,17 @@ int32_t wifiGetScannedChannel(int index) { return WiFi.channel(index); }
 String wifiGetScannedBSSID(int index) { return WiFi.BSSIDstr(index); }
 
 void wifiCheckSta() {
-  if (WiFi.status() == WL_CONNECTED) {
+  if (wifiMulti.run() == WL_CONNECTED) {
     if (staConnected == false) {
       staConnected = true;
       staIp = WiFi.localIP().toString();
-      Serial.println("[CONNECTED] wifi sta connected");
+      Serial.print("[CONNECTED] wifi sta connected, ip: ");
+      Serial.println(staIp);
     }
   } else {
     if (staConnected == true) {
       staConnected = false;
+      staIp = "";
       WiFi.disconnect();
       Serial.println("[DISCONNECTED] wifi disconnected");
     }

@@ -1,9 +1,6 @@
 #pragma once
 
-#include <ESPmDNS.h> // mDNS
-#include <WiFi.h>
-
-#include "log.h"
+#include <Arduino.h>
 
 void wifiBegin();
 void wifiCheckSta();

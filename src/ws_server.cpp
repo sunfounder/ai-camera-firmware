@@ -188,7 +188,7 @@ void handleConfig(String payload) {
   if (ws != nullptr) {
     ws->sendTXT(client_num, result_str);
   }
-  Serial.println(result_str);
+  // Serial.println(result_str);
 }
 
 void handleSunFounderController(String payload) {
