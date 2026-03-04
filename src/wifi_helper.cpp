@@ -77,7 +77,15 @@ bool wifiConnectAp(String ssid, String password, int channel) {
   return true;
 }
 
-int wifiSetHostname(String hostname) { return MDNS.begin(hostname); }
+void wifiDisconnect() {
+  WiFi.softAPdisconnect(true);
+  // WiFiMulti V3 没有 disconnect/stop 方法，直接 disconnect
+  staConnected = false;
+  staIp = "";
+  WiFi.disconnect();
+}
+
+int wifiSetHostname(String hostname) { return MDNS.begin(hostname.c_str()); }
 
 int wifiScan() {
   int count = 0;

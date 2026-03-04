@@ -87,7 +87,7 @@ void setup() {
 
   videoTemplate = "http://ip:9000/mjpg";
 
-  Serial.println(F("[Init]"));
+  log_i(F("[Init]"));
   log_i("Total heap: %d", ESP.getHeapSize());
   log_i("Free heap: %d", ESP.getFreeHeap());
   log_i("Total PSRAM: %d", ESP.getPsramSize());
@@ -333,6 +333,7 @@ void handleSet(String cmd) {
   // RESET
   if (_5_chars_cmd == "RESET") {
     debug("Reset");
+    wifiDisconnect();
     delay(10);
     ESP.restart();
     return;
@@ -445,13 +446,7 @@ void start() {
   String staSsid = settingsGetStaSsid();
   String staPassword = settingsGetStaPassword();
   if (staSsid.length() > 0 || staPassword.length() > 8) {
-    staConnected = wifiConnectSta(staSsid, staPassword);
-    if (staConnected) {
-      debug(F("STA connected"));
-    } else {
-      debug(F("STA connect failed"));
-      // Serial.println("[ERROR] STA connect failed");
-    }
+    wifiConnectSta(staSsid, staPassword);
   } else {
     debug(F("STA SSID or STA password empty!"));
   }

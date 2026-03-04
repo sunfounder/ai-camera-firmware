@@ -6,6 +6,7 @@ void wifiBegin();
 void wifiCheckSta();
 bool wifiConnectAp(String ssid, String password, int channel = 1);
 bool wifiConnectSta(String ssid, String password, bool wait = false);
+void wifiDisconnect();
 int wifiSetHostname(String hostname);
 int wifiScan();
 void wifiScanClean();
