@@ -119,7 +119,6 @@ void loop() {
 /*--------------------- Functions------------------------------*/
 /* websocket loop && camera init */
 void wsServerCameraHandler() {
-  wifiCheckSta();
   wsServer.loop();
   if (!isCameraStarted) {
     cameraInit();
@@ -379,11 +378,11 @@ void handleSet(String cmd) {
     String staSsid = settingsGetStaSsid();
     String staPassword = settingsGetStaPassword();
     if (staSsid.length() > 0 && staPassword.length() > 0) {
-      bool result = wifiConnectSta(staSsid, staPassword);
-      if (result) {
-        debug("STA connected");
-        Serial.print("[OK]");
-        Serial.println(wifiGetStaIp());
+      bool connected = wifiConnectSta(staSsid, staPassword, 5);
+      if (connected) {
+        debug("STA connect success");
+        Serial.printf("[OK] %s\n", wifiGetStaIp().c_str());
+
       } else {
         debug("STA connect failed");
         Serial.println("[ERROR] STA connect failed");
@@ -420,7 +419,6 @@ void handleSet(String cmd) {
 }
 
 void start() {
-  bool staConnected = false;
   LED_STATUS_ERROR();
   String staSsid = settingsGetStaSsid();
   String staPassword = settingsGetStaPassword();
@@ -434,12 +432,11 @@ void start() {
   wsServer.begin(port, settingsGetName(), settingsGetType(), CHECK_TEXT);
   debug(F("Websocket on!"));
   Serial.print(F("[OK] "));
-  if (staConnected) {
+  videoUrl = String("http://") + wifiGetApIp() + ":9000/mjpg";
+  Serial.println(wifiGetApIp());
+  if (wifiIsStaConnected()) {
     videoUrl = String("http://") + wifiGetStaIp() + ":9000/mjpg";
     Serial.println(wifiGetStaIp());
-  } else {
-    videoUrl = String("http://") + wifiGetApIp() + ":9000/mjpg";
-    Serial.println(wifiGetApIp());
   }
   inited = true;
 }

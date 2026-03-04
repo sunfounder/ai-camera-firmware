@@ -9,22 +9,19 @@
 // #define DEBUG
 WiFiMulti wifiMulti;
 
-String apIp = "";
-String staIp = "";
 String macPrefix = "";
 String macAddress = "";
-bool staConnected = false;
 
 void wifiBegin() {
   WiFi.mode(WIFI_AP_STA);
   WiFi.begin();
-  macAddress = WiFi.macAddress();
+  String macAddress = WiFi.macAddress();
   macPrefix = macAddress;
   macPrefix.replace(":", "");
   macPrefix = macPrefix.substring(6, 12);
 }
 
-bool wifiConnectSta(String ssid, String password, bool wait) {
+bool wifiConnectSta(String ssid, String password, uint8_t waitSecond) {
 
 #ifdef DEBUG
   Serial.println(F("Connecting to WiFi ..."));
@@ -38,50 +35,26 @@ bool wifiConnectSta(String ssid, String password, bool wait) {
   wifiMulti.addAP(ssid.c_str(), password.c_str());
   wifiMulti.run();
 
-  // Skip waiting if not required
-  if (!wait) {
-    return true;
+  // Wait for connection
+  for (int i = 0; i < waitSecond; i++) {
+    if (wifiIsStaConnected()) {
+      break;
+    }
+    delay(1000);
   }
 
-  // Wait for wifi to connect
-  //   int count = 0;
-  // #ifdef DEBUG
-  //   Serial.print("[DEBUG] Connecting.");
-  // #endif
-  //   while (wifiMulti.run() != WL_CONNECTED) {
-  // #ifdef DEBUG
-  //     Serial.print(".");
-  // #endif
-  //     delay(500);
-  //     count++;
-  //     if (count > 20) {
-  // #ifdef DEBUG
-  //       Serial.println("");
-  //       Serial.println(WiFi.status());
-  // #endif
-  //       return false;
-  //     }
-  //   }
-  // #ifdef DEBUG
-  //   Serial.println("");
-  // #endif
-  //   staConnected = true;
-  //   staIp = WiFi.localIP().toString();
-  return true;
+  return wifiIsStaConnected();
 }
 
 bool wifiConnectAp(String ssid, String password, int channel) {
   String temp = ssid + '-' + macPrefix;
   WiFi.softAP(temp.c_str(), password.c_str(), channel);
-  apIp = WiFi.softAPIP().toString();
   return true;
 }
 
 void wifiDisconnect() {
   WiFi.softAPdisconnect(true);
-  WiFi.disconnect(true, true);  // 关闭 WiFi 并清除配置
-  staConnected = false;
-  staIp = "";
+  WiFi.disconnect(true, true); // 关闭 WiFi 并清除配置
 }
 
 int wifiSetHostname(String hostname) { return MDNS.begin(hostname.c_str()); }
@@ -106,30 +79,12 @@ int32_t wifiGetScannedChannel(int index) { return WiFi.channel(index); }
 
 String wifiGetScannedBSSID(int index) { return WiFi.BSSIDstr(index); }
 
-void wifiCheckSta() {
-  if (wifiMulti.run() == WL_CONNECTED) {
-    if (staConnected == false) {
-      staConnected = true;
-      staIp = WiFi.localIP().toString();
-      Serial.print("[CONNECTED] wifi sta connected, ip: ");
-      Serial.println(staIp);
-    }
-  } else {
-    if (staConnected == true) {
-      staConnected = false;
-      staIp = "";
-      WiFi.disconnect();
-      Serial.println("[DISCONNECTED] wifi disconnected");
-    }
-  }
-}
+String wifiGetStaIp() { return WiFi.localIP().toString(); }
 
-String wifiGetStaIp() { return staIp; }
-
-String wifiGetApIp() { return apIp; }
+String wifiGetApIp() { return WiFi.softAPIP().toString(); }
 
 String wifiGetMacPrefix() { return macPrefix; }
 
-String wifiGetMacAddress() { return macAddress; }
+String wifiGetMacAddress() { return WiFi.macAddress(); }
 
-bool wifiIsStaConnected() { return staConnected; }
+bool wifiIsStaConnected() { return WiFi.status() == WL_CONNECTED; }

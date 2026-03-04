@@ -358,7 +358,7 @@ void handleSetSta() {
                 "Password length should be between 8 and 64.");
     return;
   }
-  bool r = wifiConnectSta(ssid, password);
+  bool r = wifiConnectSta(ssid, password, 5);
   if (r) {
     settingsSetStaSsid(ssid);
     settingsSetStaPassword(password);

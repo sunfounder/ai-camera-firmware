@@ -155,7 +155,7 @@ void handleConfig(String payload) {
         errors.add(F("STA_PASSWORD_INVALID"));
         return;
       }
-      bool r = wifiConnectSta(staSsid, staPassword, true);
+      bool r = wifiConnectSta(staSsid, staPassword, 5);
       if (r) {
         result["state"] = F("OK");
         result["ip"] = wifiGetStaIp();

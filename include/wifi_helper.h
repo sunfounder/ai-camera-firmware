@@ -3,9 +3,8 @@
 #include <Arduino.h>
 
 void wifiBegin();
-void wifiCheckSta();
 bool wifiConnectAp(String ssid, String password, int channel = 1);
-bool wifiConnectSta(String ssid, String password, bool wait = false);
+bool wifiConnectSta(String ssid, String password, uint8_t waitSecond = 0);
 void wifiDisconnect();
 int wifiSetHostname(String hostname);
 int wifiScan();
