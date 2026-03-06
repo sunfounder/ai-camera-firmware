@@ -19,7 +19,7 @@
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.5.3.22"
+#define VERSION "1.5.3.23"
 
 #include "camera.h"
 #include "camera_server.h"
@@ -87,7 +87,6 @@ void setup() {
 
   videoTemplate = "http://ip:9000/mjpg";
 
-  log_i(F("[Init]"));
   wifiBegin();
   settingsBegin(VERSION);
 
