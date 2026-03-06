@@ -130,14 +130,25 @@ void handleConfig(String payload) {
     result["state"] = F("OK");
   }
   if (config["staSsid"].is<String>()) {
-    String wifi_ssid = config["staSsid"].as<String>();
-    settingsSetStaSsid(wifi_ssid);
-    result["state"] = F("OK");
+    String staSsid = config["staSsid"].as<String>();
+    if (staSsid.length() <= 0 || staSsid.length() > 32) {
+      result["state"] = F("ERROR");
+      errors.add(F("STA_SSID_INVALID"));
+    } else {
+      settingsSetStaSsid(staSsid);
+      result["state"] = F("OK");
+    }
   }
   if (config["staPassword"].is<String>()) {
-    String wifi_password = config["staPassword"].as<String>();
-    settingsSetStaPassword(wifi_password);
-    result["state"] = F("OK");
+    String staPassword = config["staPassword"].as<String>();
+    if (staPassword.length() < 8 || staPassword.length() > 64) {
+      result["state"] = F("ERROR");
+      errors.add(F("STA_PASSWORD_INVALID"));
+      return;
+    } else {
+      settingsSetStaPassword(staPassword);
+      result["state"] = F("OK");
+    }
   }
   if (config["command"].is<String>()) {
     String command = config["command"].as<String>();
