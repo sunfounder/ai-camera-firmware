@@ -2,12 +2,10 @@
 
 #include <ESPmDNS.h>
 #include <WiFi.h>
-#include <WiFiMulti.h>
 
 #include "log.h"
 
-// #define DEBUG
-WiFiMulti wifiMulti;
+#define DEBUG
 
 String macPrefix = "";
 String macAddress = "";
@@ -32,8 +30,7 @@ bool wifiConnectSta(String ssid, String password, uint8_t waitSecond) {
 #endif
 
   // Connect to wifi
-  wifiMulti.addAP(ssid.c_str(), password.c_str());
-  wifiMulti.run();
+  WiFi.begin(ssid.c_str(), password.c_str());
 
   // Wait for connection
   for (int i = 0; i < waitSecond; i++) {
@@ -60,6 +57,9 @@ void wifiDisconnect() {
 int wifiSetHostname(String hostname) { return MDNS.begin(hostname.c_str()); }
 
 int wifiScan() {
+#ifdef DEBUG
+  Serial.println(F("Scanning WiFi ..."));
+#endif
   int count = 0;
   WiFi.disconnect();
   WiFi.scanDelete();
