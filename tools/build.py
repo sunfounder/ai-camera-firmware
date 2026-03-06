@@ -62,9 +62,8 @@ def run_command(cmd, description, show_output=False):
         return True
     except subprocess.CalledProcessError as e:
         print(f"{Emoji.ERROR} {description} failed!")
-        print("\n--- PlatformIO Output ---")
-        print(e.output)
-        print("------------------------")
+        print(f"Command: {cmd}")
+        print(f"Output: {e.output}")
         sys.exit(1)
 
 # 主函数
@@ -85,21 +84,8 @@ def main():
     ESPTOOL = os.path.join(FIRMWARE_DIR, "esptool.exe")
     
     # 打印标题
-    print("\n==============================================")
     print(f"{Emoji.BUILD} {SCRIPT_NAME} Build Tool")
-    print("==============================================")
     print(f"Version: {version}")
-    print(f"Environment: {ENVIRONMENT}")
-    print("----------------------------------------------")
-    print("Source Files:")
-    print(f"  - Firmware:       {FIRMWARE}")
-    print(f"  - Bootloader:     {BOOTLOADER}")
-    print(f"  - Partitions:     {PARTITIONS}")
-    print(f"  - Boot App:       {BOOT_APP}")
-    print("\nOutput Files:")
-    print(f"  - OTA Binary:     {OTA_BIN}")
-    print(f"  - Factory Binary: {FACTORY_BIN}")
-    print("==============================================")
     
     # 构建项目（隐藏输出，失败时显示）
     print("\nBuilding PIO project...")
@@ -122,13 +108,10 @@ def main():
         print(f"{Emoji.SUCCESS} Factory binary created: {FACTORY_BIN}")
     
     # 打印完成信息
-    print("\n==============================================")
     print(f"{Emoji.DONE} Build completed successfully!")
-    print("----------------------------------------------")
     print("Files created:")
     print(f"  - OTA Binary:     {OTA_BIN}")
     print(f"  - Factory Binary: {FACTORY_BIN}")
-    print("==============================================")
 
 if __name__ == "__main__":
     main()
