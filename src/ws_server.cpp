@@ -4,13 +4,20 @@
 #include "settings.h"
 #include <ArduinoJson.h>
 
+// #define DEBUG
+
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
                       size_t length);
 
 WebSocketsServer *ws = nullptr;
 
-uint8_t client_num = 0;
-bool wsConnected = false;
+// 存储已连接的客户端编号
+uint8_t connectedClients[MAX_CLIENTS];
+// 每个客户端的 ping-pong 时间戳
+uint32_t clientLastPingPong[MAX_CLIENTS];
+// 每个客户端的最后数据接收时间戳
+uint32_t clientLastDataTime[MAX_CLIENTS];
+uint8_t clientCount = 0;
 
 String wsName = "";
 String wsType = "";
@@ -18,14 +25,69 @@ String wsCheck = "SC";
 String videoUrl = "";
 String videoTemplate = "";
 
-Ticker pingPongTimer; // timer for checing ping_pong
-bool isPingPingOK = true;
-uint32_t lastPingPong = 0;
+Ticker pingPongTimer;      // timer for checing ping_pong
+Ticker dataTimeoutTimer;   // timer for checking data timeout
 uint32_t last_pong_time = 0;
 uint16_t PONG_INTERVAL = 200;
+uint16_t DATA_TIMEOUT = 1000;  // 数据超时时间 (ms)
+bool dataTimeoutSent = false;  // 数据超时标志位
 
 uint32_t last_send_time = 0;
 uint16_t SEND_INTERVAL = 20;
+
+// 添加客户端到连接列表
+void addClient(uint8_t cn) {
+  for (int i = 0; i < clientCount; i++) {
+    if (connectedClients[i] == cn) {
+      return; // 已存在，不重复添加
+    }
+  }
+  if (clientCount < MAX_CLIENTS) {
+    connectedClients[clientCount] = cn;
+    clientLastPingPong[clientCount] =
+        millis(); // 初始化该客户端的 ping-pong 时间
+    clientLastDataTime[clientCount] =
+        millis(); // 初始化该客户端的数据接收时间
+    clientCount++;
+  }
+}
+
+// 从连接列表中移除客户端
+void removeClient(uint8_t cn) {
+  for (int i = 0; i < clientCount; i++) {
+    if (connectedClients[i] == cn) {
+      // 将最后一个元素移到被删除的位置
+      connectedClients[i] = connectedClients[clientCount - 1];
+      clientLastPingPong[i] = clientLastPingPong[clientCount - 1];
+      clientLastDataTime[i] = clientLastDataTime[clientCount - 1];
+      clientCount--;
+      break;
+    }
+  }
+}
+
+// 更新指定客户端的 ping-pong 时间
+void updateClientPingPong(uint8_t cn) {
+  for (int i = 0; i < clientCount; i++) {
+    if (connectedClients[i] == cn) {
+      clientLastPingPong[i] = millis();
+      break;
+    }
+  }
+}
+
+// 更新指定客户端的数据接收时间
+void updateClientDataTime(uint8_t cn) {
+  for (int i = 0; i < clientCount; i++) {
+    if (connectedClients[i] == cn) {
+      clientLastDataTime[i] = millis();
+      break;
+    }
+  }
+}
+
+// 获取客户端数量
+int WS_Server::getClientCount() { return clientCount; }
 
 String intToString(uint8_t *value, size_t length) {
   String buf;
@@ -36,20 +98,59 @@ String intToString(uint8_t *value, size_t length) {
 }
 
 void checkPingPong() {
-  if (wsConnected == false) {
+  if (clientCount == 0) {
     return;
   }
-  if (millis() - lastPingPong > TIMEOUT) {
-    lastPingPong = millis();
-    isPingPingOK = false;
-    Serial.println("[DISCONNECTED] PingPong timeout");
+
+  // 分别检查每个客户端的 ping-pong 状态
+  for (int i = 0; i < clientCount; i++) {
+    uint8_t cn = connectedClients[i];
+    if (millis() - clientLastPingPong[i] > TIMEOUT) {
+      Serial.print("[DISCONNECTED] Client ");
+      Serial.print(cn);
+      Serial.println(" PingPong timeout");
+      if (ws != nullptr) {
+        ws->disconnect(cn);
+      }
+      // 从列表中移除该客户端
+      removeClient(cn);
+      i--; // 索引回退，因为数组已变更
+    }
   }
+}
+
+// 检查数据超时，超时则发送 [APPSTOP]
+// 只有所有客户端都没有发数据时，才认为是暂停
+void checkDataTimeout() {
+  if (clientCount == 0) {
+    return;
+  }
+
+  // 检查是否所有客户端都超时了
+  bool allTimeout = true;
+  for (int i = 0; i < clientCount; i++) {
+    if (millis() - clientLastDataTime[i] <= DATA_TIMEOUT) {
+      // 至少有一个客户端还在发数据
+      allTimeout = false;
+      break;
+    }
+  }
+
+  // 只有所有客户端都超时才发送 [APPSTOP]，且只发送一次
+  if (allTimeout && !dataTimeoutSent) {
+    Serial.println("[APPSTOP] Data timeout from all clients");
+    dataTimeoutSent = true;
+  }
+}
+
+// 重置数据超时标志位
+void resetDataTimeoutFlag() {
+  dataTimeoutSent = false;
 }
 
 WS_Server::WS_Server() {}
 
 void WS_Server::close() {
-  wsConnected = false;
   if (ws != nullptr) {
     ws->close();
   }
@@ -74,6 +175,7 @@ void WS_Server::begin(int port, String _name, String _type, String _check) {
   ws->onEvent(onWebSocketEvent);
 
   pingPongTimer.attach_ms(20, checkPingPong);
+  dataTimeoutTimer.attach_ms(20, checkDataTimeout);
 }
 
 void WS_Server::loop() {
@@ -84,7 +186,9 @@ void WS_Server::loop() {
 
 void WS_Server::send(String data) {
   if (ws != nullptr) {
-    ws->sendTXT(client_num, data);
+    for (int i = 0; i < clientCount; i++) {
+      ws->sendTXT(connectedClients[i], data);
+    }
   }
 }
 
@@ -93,13 +197,15 @@ void WS_Server::sendBIN(uint8_t *payload, size_t length) {
   // bool WebSocketsServerCore::sendBIN(uint8_t num, const uint8_t * payload,
   // size_t length)
   if (ws != nullptr) {
-    ws->sendBIN(client_num, payload, length);
+    for (int i = 0; i < clientCount; i++) {
+      ws->sendBIN(connectedClients[i], payload, length);
+    }
   }
 }
 
-bool WS_Server::isConnected() { return wsConnected; }
+bool WS_Server::isConnected() { return clientCount > 0; }
 
-void handleConfig(String payload) {
+void handleConfig(uint8_t client_num, String payload) {
   // Serial.println("SET+ config from websocket");
   JsonDocument config;
   JsonDocument result;
@@ -242,33 +348,15 @@ void handleSunFounderController(String payload) {
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
                       size_t length) {
   String out;
-  client_num = cn;
-
-  // send pong
-  uint32_t _time = millis();
-  if (_time - last_pong_time > PONG_INTERVAL) {
-    String msg = "pong " + String(_time);
-    if (ws != nullptr) {
-      ws->sendTXT(client_num, msg);
-    }
-    last_pong_time = millis();
-#ifdef DEBUG
-    Serial.println("[DEBUG] [WS] send PONG");
-#endif
-  }
 
   switch (type) {
   // Client has disconnected
   case WStype_DISCONNECTED: {
     LED_STATUS_DISCONNECTED();
-#ifdef DEBUG
-    Serial.println("[DEBUG] [WS] Disconnected!");
-#endif
     // IPAddress remoteIp = ws.remoteIP(client_num);
-    Serial.print("[DISCONNECTED] ");
+    Serial.printf("[DISCONNECTED] Disconnected client[%d]\n", cn);
     // Serial.println(remoteIp.toString());
-    wsConnected = false;
-    client_num = 0;
+    removeClient(cn);
     break;
   }
   // New client has connected
@@ -276,14 +364,14 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
     LED_STATUS_CONNECTED();
     IPAddress remoteIp;
     if (ws != nullptr) {
-      remoteIp = ws->remoteIP(client_num);
+      remoteIp = ws->remoteIP(cn);
     }
-#ifdef DEBUG
-    Serial.print("[DEBUG] [WS] Connection from ");
-    Serial.println(remoteIp.toString());
-#endif
-    Serial.print("[CONNECTED] ");
-    Serial.println(remoteIp.toString());
+    Serial.printf("[CONNECTED] Connected client[%d] %s\n", cn,
+                  remoteIp.toString().c_str());
+
+    // 添加客户端到连接列表
+    addClient(cn);
+
     // Send check_info  to client
     String check_info = String("{") + "\"Name\":\"" + wsName + "\"," +
                         "\"Type\":\"" + wsType + "\"," + "\"Check\":\"" +
@@ -292,9 +380,8 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
                         "\"VideoTemplate\":\"" + videoTemplate + "\"" + "}";
     delay(100);
     if (ws != nullptr) {
-      ws->sendTXT(client_num, check_info);
+      ws->sendTXT(cn, check_info);
     }
-    wsConnected = true;
     break;
   }
   // receive text
@@ -302,23 +389,41 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
 #ifdef DEBUG
     Serial.println("[DEBUG] [WS] WStype_TEXT");
 #endif
-    wsConnected = true;
     // Serial.print("WStype_TEXT, length: ");Serial.println(length);
 
     out = intToString(payload, length);
 
-    // reset ping_pong time
-    lastPingPong = millis();
+    // 更新该客户端的 ping-pong 时间
+    updateClientPingPong(cn);
+
     if (out.compareTo("ping") == 0) {
       // if (strcmp(out.c_str(), "ping") == 0) {
-      Serial.println("[APPSTOP]");
+#ifdef DEBUG
+        Serial.printf("[DEBUG] Received ping from client[%d]\n", cn);
+#endif
+
+      // send pong back
+      uint32_t _time = millis();
+      String msg = "pong " + String(_time);
+      if (ws != nullptr) {
+        ws->sendTXT(cn, msg);
+      }
+      last_pong_time = millis();
+#ifdef DEBUG
+      Serial.printf("[DEBUG] [WS] send PONG to [%d]\n", cn);
+#endif
+
       return;
     }
     if (out.startsWith("SET+")) {
-      handleConfig(out.substring(4));
+      handleConfig(cn, out.substring(4));
       return;
     }
     if (length > 0) {
+      // 更新数据接收时间
+      updateClientDataTime(cn);
+      // 重置超时标志位
+      resetDataTimeoutFlag();
       handleSunFounderController(out);
       return;
     }
@@ -326,10 +431,13 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
   }
   case WStype_BIN: {
 #ifdef DEBUG
-    Serial.println("[DEBUG] [WS] WStype_BIN");
+    Serial.printf("[DEBUG] [WS] WStype_BIN from client[%d]\n", cn);
 #endif
-    // reset ping_pong time
-    lastPingPong = millis();
+    // 更新该客户端的 ping-pong 时间
+    updateClientPingPong(cn);
+    // 更新数据接收时间并重置超时标志位
+    updateClientDataTime(cn);
+    resetDataTimeoutFlag();
     Serial.print("WSB+");
     Serial.write(payload, length);
     Serial.println();
@@ -338,51 +446,51 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
   case WStype_ERROR: {
     LED_STATUS_ERROR();
 #ifdef DEBUG
-    Serial.println("[DEBUG] [WS] WStype_ERROR");
+    Serial.printf("[DEBUG] [WS] WStype_ERROR from client[%d]\n", cn);
 #endif
     break;
   }
   case WStype_FRAGMENT_TEXT_START: {
 #ifdef DEBUG
-    Serial.println("[DEBUG] [WS] WStype_FRAGMENT_TEXT_START");
+    Serial.printf("[DEBUG] [WS] WStype_FRAGMENT_TEXT_START from client[%d]\n",
+                  cn);
 #endif
     break;
   }
   case WStype_FRAGMENT_BIN_START: {
 #ifdef DEBUG
-    Serial.println("[DEBUG] [WS] WStype_FRAGMENT_BIN_START");
+    Serial.printf("[DEBUG] [WS] WStype_FRAGMENT_BIN_START from client[%d]\n",
+                  cn);
 #endif
     break;
   }
   case WStype_FRAGMENT: {
 #ifdef DEBUG
-    Serial.println("[DEBUG] [WS] WStype_FRAGMENT");
+    Serial.printf("[DEBUG] [WS] WStype_FRAGMENT from client[%d]\n", cn);
 #endif
     break;
   }
   case WStype_FRAGMENT_FIN: {
 #ifdef DEBUG
-    Serial.println("[DEBUG] [WS] WStype_FRAGMENT_FIN");
+    Serial.printf("[DEBUG] [WS] WStype_FRAGMENT_FIN from client[%d]\n", cn);
 #endif
     break;
   }
   case WStype_PING: {
 #ifdef DEBUG
-    Serial.println("[DEBUG] [WS] WStype_PING");
+    Serial.printf("[DEBUG] [WS] WStype_PING from client[%d]\n", cn);
 #endif
     break;
   }
   case WStype_PONG: {
 #ifdef DEBUG
-    Serial.println("[DEBUG] [WS] WStype_PONG");
+    Serial.printf("[DEBUG] [WS] WStype_PONG from client[%d]\n", cn);
 #endif
     break;
   }
   default: {
 #ifdef DEBUG
-    Serial.print("[DEBUG] [WS] Event Type: [");
-    Serial.print(type);
-    Serial.println("]");
+    Serial.printf("[DEBUG] [WS] Event Type: [%d] for client[%d]\n", type, cn);
 #endif
     break;
   }

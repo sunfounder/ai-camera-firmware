@@ -4,8 +4,6 @@
 #include "wifi_helper.h"
 #include <WebSocketsServer.h>
 
-// #define DEBUG
-
 #define REGIONS                                                                \
   (char[26]){'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',  \
              'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}
@@ -13,6 +11,7 @@
 #define WS_BUFFER_SIZE 1024
 
 #define TIMEOUT 2000
+#define MAX_CLIENTS 5  // 最大支持 5 个客户端
 
 class WS_Server {
 public:
@@ -25,6 +24,7 @@ public:
   void sendBIN(uint8_t *payload, size_t length);
   bool isConnected();
   void setStaIp(String ip);
+  int getClientCount();
 
 private:
   int port;
