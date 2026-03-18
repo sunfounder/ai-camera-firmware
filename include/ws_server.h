@@ -10,8 +10,7 @@
 #define REGIONS_LENGTH 26
 #define WS_BUFFER_SIZE 1024
 
-#define TIMEOUT 2000
-#define MAX_CLIENTS 5  // 最大支持 5 个客户端
+#define MAX_CLIENTS 5 // 最大支持 5 个客户端
 
 class WS_Server {
 public:

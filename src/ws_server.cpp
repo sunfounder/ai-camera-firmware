@@ -4,7 +4,10 @@
 #include "settings.h"
 #include <ArduinoJson.h>
 
-// #define DEBUG
+#define DEBUG
+
+#define PINGPONG_TIMEOUT 3000
+#define DATA_TIMEOUT 3000
 
 void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
                       size_t length);
@@ -25,12 +28,9 @@ String wsCheck = "SC";
 String videoUrl = "";
 String videoTemplate = "";
 
-Ticker pingPongTimer;      // timer for checing ping_pong
-Ticker dataTimeoutTimer;   // timer for checking data timeout
-uint32_t last_pong_time = 0;
-uint16_t PONG_INTERVAL = 200;
-uint16_t DATA_TIMEOUT = 1000;  // 数据超时时间 (ms)
-bool dataTimeoutSent = false;  // 数据超时标志位
+Ticker pingPongTimer;         // timer for checing ping_pong
+Ticker dataTimeoutTimer;      // timer for checking data timeout
+bool dataTimeoutSent = false; // 数据超时标志位
 
 uint32_t last_send_time = 0;
 uint16_t SEND_INTERVAL = 20;
@@ -46,8 +46,7 @@ void addClient(uint8_t cn) {
     connectedClients[clientCount] = cn;
     clientLastPingPong[clientCount] =
         millis(); // 初始化该客户端的 ping-pong 时间
-    clientLastDataTime[clientCount] =
-        millis(); // 初始化该客户端的数据接收时间
+    clientLastDataTime[clientCount] = millis(); // 初始化该客户端的数据接收时间
     clientCount++;
   }
 }
@@ -105,15 +104,15 @@ void checkPingPong() {
   // 分别检查每个客户端的 ping-pong 状态
   for (int i = 0; i < clientCount; i++) {
     uint8_t cn = connectedClients[i];
-    if (millis() - clientLastPingPong[i] > TIMEOUT) {
-      Serial.print("[DISCONNECTED] Client ");
-      Serial.print(cn);
-      Serial.println(" PingPong timeout");
+    if (millis() - clientLastPingPong[i] > PINGPONG_TIMEOUT) {
+#ifdef DEBUG
+      Serial.printf("Client %d PingPong timeout\n", cn);
+#endif
       if (ws != nullptr) {
         ws->disconnect(cn);
+      } else {
+        removeClient(cn);
       }
-      // 从列表中移除该客户端
-      removeClient(cn);
       i--; // 索引回退，因为数组已变更
     }
   }
@@ -144,9 +143,7 @@ void checkDataTimeout() {
 }
 
 // 重置数据超时标志位
-void resetDataTimeoutFlag() {
-  dataTimeoutSent = false;
-}
+void resetDataTimeoutFlag() { dataTimeoutSent = false; }
 
 WS_Server::WS_Server() {}
 
@@ -399,7 +396,7 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
     if (out.compareTo("ping") == 0) {
       // if (strcmp(out.c_str(), "ping") == 0) {
 #ifdef DEBUG
-        Serial.printf("[DEBUG] Received ping from client[%d]\n", cn);
+      Serial.printf("[DEBUG] Received ping from client[%d]\n", cn);
 #endif
 
       // send pong back
@@ -408,7 +405,6 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
       if (ws != nullptr) {
         ws->sendTXT(cn, msg);
       }
-      last_pong_time = millis();
 #ifdef DEBUG
       Serial.printf("[DEBUG] [WS] send PONG to [%d]\n", cn);
 #endif
