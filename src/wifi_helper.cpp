@@ -13,6 +13,7 @@ String macAddress = "";
 void wifiBegin() {
   WiFi.mode(WIFI_AP_STA);
   WiFi.begin();
+  WiFi.setAutoReconnect(false);
   String macAddress = WiFi.macAddress();
   macPrefix = macAddress;
   macPrefix.replace(":", "");
