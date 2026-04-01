@@ -4,7 +4,7 @@
 #include "settings.h"
 #include <ArduinoJson.h>
 
-#define DEBUG
+// #define DEBUG
 
 #define PINGPONG_TIMEOUT 3000
 #define DATA_TIMEOUT 3000
@@ -39,6 +39,9 @@ uint16_t SEND_INTERVAL = 20;
 void addClient(uint8_t cn) {
   for (int i = 0; i < clientCount; i++) {
     if (connectedClients[i] == cn) {
+#ifdef DEBUG
+      Serial.println("Client already connected");
+#endif
       return; // 已存在，不重复添加
     }
   }
@@ -48,6 +51,9 @@ void addClient(uint8_t cn) {
         millis(); // 初始化该客户端的 ping-pong 时间
     clientLastDataTime[clientCount] = millis(); // 初始化该客户端的数据接收时间
     clientCount++;
+#ifdef DEBUG
+    Serial.printf("Client count: %d\n", clientCount);
+#endif
   }
 }
 
@@ -60,6 +66,9 @@ void removeClient(uint8_t cn) {
       clientLastPingPong[i] = clientLastPingPong[clientCount - 1];
       clientLastDataTime[i] = clientLastDataTime[clientCount - 1];
       clientCount--;
+#ifdef DEBUG
+      Serial.printf("Client count: %d\n", clientCount);
+#endif
       break;
     }
   }
@@ -98,6 +107,7 @@ String intToString(uint8_t *value, size_t length) {
 
 void checkPingPong() {
   if (clientCount == 0) {
+    LED_STATUS_DISCONNECTED();
     return;
   }
 
@@ -171,8 +181,8 @@ void WS_Server::begin(int port, String _name, String _type, String _check) {
   ws->begin();
   ws->onEvent(onWebSocketEvent);
 
-  pingPongTimer.attach_ms(20, checkPingPong);
-  dataTimeoutTimer.attach_ms(20, checkDataTimeout);
+  pingPongTimer.attach_ms(1000, checkPingPong);
+  dataTimeoutTimer.attach_ms(1000, checkDataTimeout);
 }
 
 void WS_Server::loop() {
@@ -349,7 +359,6 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
   switch (type) {
   // Client has disconnected
   case WStype_DISCONNECTED: {
-    LED_STATUS_DISCONNECTED();
     // IPAddress remoteIp = ws.remoteIP(client_num);
     Serial.printf("[DISCONNECTED] Disconnected client[%d]\n", cn);
     // Serial.println(remoteIp.toString());
@@ -394,7 +403,6 @@ void onWebSocketEvent(uint8_t cn, WStype_t type, uint8_t *payload,
     updateClientPingPong(cn);
 
     if (out.compareTo("ping") == 0) {
-      // if (strcmp(out.c_str(), "ping") == 0) {
 #ifdef DEBUG
       Serial.printf("[DEBUG] Received ping from client[%d]\n", cn);
 #endif
