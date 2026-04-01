@@ -19,7 +19,7 @@
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.5.3.25"
+#define VERSION "1.5.3.26"
 
 #include "camera.h"
 #include "camera_server.h"
@@ -57,6 +57,7 @@ bool inited =
     false; // For default config settings. All settings send befor inited will
            // be treated as default settings. default settings will be ignored
            // if settings in flash are not empty.
+unsigned long lastPrintFreeHeapTime = 0;
 
 String rxBuf = "";
 
@@ -70,6 +71,7 @@ String serialRead();
 void handleSet(String cmd);
 void start();
 void handleData(String data);
+void print_free_heap();
 
 /*--------------------- setup() & loop() ------------------------------*/
 void setup() {
@@ -112,6 +114,7 @@ void loop() {
   wsServerCameraHandler();
   serialReceivedHandler();
   settingsLoop();
+  // print_free_heap();
   delay(6);
 }
 
@@ -426,7 +429,6 @@ void start() {
   } else {
     debug(F("STA SSID or STA password empty!"));
   }
-  LED_STATUS_DISCONNECTED();
   wsServer.close();
   wsServer.begin(port, settingsGetName(), settingsGetType(), CHECK_TEXT);
   debug(F("Websocket on!"));
@@ -459,4 +461,11 @@ void factoryResetCheck() {
     ;
   }
   pinMode(pull, INPUT);
+}
+
+void print_free_heap() {
+  if (millis() - lastPrintFreeHeapTime < 1000)
+    return;
+  lastPrintFreeHeapTime = millis();
+  Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
 }
