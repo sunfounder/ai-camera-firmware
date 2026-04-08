@@ -2,11 +2,6 @@
 
 This is a firmware read convert uart command and create a websocket server. It's originally for Arduino or Raspberry Pi Pico to connect to SunFounder Controller. Send command and data over UART in boardrate 115200
 
-## Dependencies
-
-- WebSockets by Markus Sattler
-- ArduinoJson
-
 ## Update setting page www.
 
 ### Get WWW
@@ -23,10 +18,15 @@ python tools/file_to_c_gz.py
 
 It will update `ai-camera-firmware/www` folder
 
-## Pack binary
+## Build binary
 
-1. In Arduino IDE, click "Sketch" -> "Export Compiled Binary", it will compile firmware to `ai-camera-firmware/build` folder
-2. Run `python tools/pack_binary.py`, It will pack the binary file to `ai-camera-firmware/firmware` folder
+Run command to build firmware
+
+```bash
+python tools/build.py
+```
+
+It will build the firmware to `ai-camera-firmware/firmware` folder
 
 ## Fastory Reset
 
