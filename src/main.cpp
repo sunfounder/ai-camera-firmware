@@ -19,7 +19,7 @@
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.5.3.26"
+#define VERSION "1.5.3"
 
 #include "camera.h"
 #include "camera_server.h"

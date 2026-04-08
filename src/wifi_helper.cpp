@@ -5,7 +5,7 @@
 
 #include "log.h"
 
-#define DEBUG
+// #define DEBUG
 
 String macPrefix = "";
 String macAddress = "";
