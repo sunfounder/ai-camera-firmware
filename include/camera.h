@@ -66,3 +66,9 @@ void register_camera(const pixformat_t pixel_fromat,
                      const int d7, const int xclk, const int pclk,
                      const int vsync, const int href, const int sda,
                      const int scl, const int pwdn, const int reset);
+
+/**
+ * @brief Stop camera frame-grab task and deinitialize camera.
+ *        Must be called before OTA update to prevent flash write conflicts.
+ */
+void camera_stop();

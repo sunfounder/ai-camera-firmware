@@ -5,6 +5,7 @@
 
 static const char *TAG = "camera";
 static QueueHandle_t xQueueFrameO = NULL;
+static TaskHandle_t cameraTaskHandle = NULL;
 
 static void task_process_handler(void *arg) {
   while (true) {
@@ -13,6 +14,14 @@ static void task_process_handler(void *arg) {
       xQueueSend(xQueueFrameO, &frame, portMAX_DELAY);
       // xQueueOverwrite(xQueueFrameO, &frame);
     }
+  }
+}
+
+void camera_stop() {
+  if (cameraTaskHandle != NULL) {
+    Serial.println("[CAM] Suspending frame task for OTA...");
+    vTaskSuspend(cameraTaskHandle);
+    Serial.println("[CAM] Camera task suspended");
   }
 }
 
@@ -99,6 +108,6 @@ void register_camera(const pixformat_t pixel_fromat,
   s->set_contrast(s, settingsGetCameraContrast());
 
   xQueueFrameO = frame_o;
-  xTaskCreatePinnedToCore(task_process_handler, TAG, 1 * 1024, NULL, 5, NULL,
-                          1);
+  xTaskCreatePinnedToCore(task_process_handler, TAG, 1 * 1024, NULL, 5,
+                          &cameraTaskHandle, 1);
 }

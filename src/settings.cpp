@@ -1,5 +1,6 @@
 #include "settings.h"
 
+#include "camera.h"
 #include "esp_camera.h"
 #include <Preferences.h>
 #include <Update.h>
@@ -272,12 +273,18 @@ void handleSetCameraSharpness() {
   sensor_t *s = esp_camera_sensor_get();
   s->set_sharpness(s, camSharpness);
 }
+static bool _updateError = false;
+static String _updateErrorMsg = "";
+
 void handleUpdateReturn() {
 #ifdef ENABLE_CORS
   setCrossOriginHeaders();
 #endif
   server.sendHeader(HEADER_CONNECTION, HEADER_CONNECTION_CLOSE);
-  if (Update.hasError()) {
+  if (_updateError) {
+    Serial.println(_updateErrorMsg);
+    server.send(400, "text/plain", _updateErrorMsg.c_str());
+  } else if (Update.hasError()) {
     String msg = "Update failed: " + String(Update.errorString());
     Serial.println(msg);
     server.send(400, "text/plain", msg.c_str());
@@ -286,34 +293,29 @@ void handleUpdateReturn() {
   }
 }
 void handleUpdate() {
-#ifdef ENABLE_CORS
-  setCrossOriginHeaders();
-#endif
   HTTPUpload &upload = server.upload();
   if (upload.status == UPLOAD_FILE_START) {
+    _updateError = false;
+    _updateErrorMsg = "";
+    camera_stop();
     Serial.printf("Update: %s\n", upload.filename.c_str());
-    // start with max available size
     if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
-      String msg = "Update begin failed: " + String(Update.errorString());
-      Serial.println(msg);
-      server.send(400, "text/plain", msg.c_str());
+      _updateError = true;
+      _updateErrorMsg = "Update begin failed: " + String(Update.errorString());
       return;
     }
   } else if (upload.status == UPLOAD_FILE_WRITE) {
-    /* flashing firmware to ESP*/
     if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-      String msg = "Update write failed: " + String(Update.errorString());
-      Serial.println(msg);
-      server.send(400, "text/plain", msg.c_str());
+      _updateError = true;
+      _updateErrorMsg = "Update write failed: " + String(Update.errorString());
       return;
     }
   } else if (upload.status == UPLOAD_FILE_END) {
     if (Update.end(true)) {
       Serial.printf("Update Success: %u\n", upload.totalSize);
     } else {
-      String msg = "Update end failed: " + String(Update.errorString());
-      Serial.println(msg);
-      server.send(400, "text/plain", msg.c_str());
+      _updateError = true;
+      _updateErrorMsg = "Update end failed: " + String(Update.errorString());
       return;
     }
   }
