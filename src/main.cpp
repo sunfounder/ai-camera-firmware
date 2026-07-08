@@ -228,13 +228,21 @@ String serialRead() {
 }
 
 void cameraInit() {
+  static int retry_count = 0;
+  if (retry_count > 0) {
+    log_i("Camera init retry #%d", retry_count);
+  }
+  retry_count++;
+
   // Power cycle camera via MOS transistor (CAMERA_PIN_PWR).
   // Library default 10ms PWDN toggle is too short for module caps to discharge.
+  // Split delays into 10ms chunks so ledStatusHandler keeps running
+  // (long blocking delays freeze the LED blink animation).
   if (CAMERA_PIN_PWR >= 0) {
     digitalWrite(CAMERA_PIN_PWR, HIGH);  // cut camera power
-    delay(500);  // full discharge of camera module capacitors
+    for (int i = 0; i < 50; i++) { delay(10); ledStatusHandler(); }  // 500ms
     digitalWrite(CAMERA_PIN_PWR, LOW);   // restore camera power
-    delay(300);  // stabilization + XCLK lock
+    for (int i = 0; i < 30; i++) { delay(10); ledStatusHandler(); }  // 300ms
   }
 
   xQueueHttpFrame = xQueueCreate(2, 2 * sizeof(camera_fb_t *));

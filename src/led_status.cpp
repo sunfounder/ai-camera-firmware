@@ -34,10 +34,16 @@ void ledSetState(uint8_t state) {
 }
 
 void ledSetError(uint8_t error) {
+  uint8_t prev = led_error_flags;
   led_error_flags |= error;
-  // Restart blink-code machine for the new error set
-  led_code_phase = 0;
-  led_code_timer = millis();
+  // Only restart blink machine if new error bits were added.
+  // Repeatedly setting the same error (e.g. during retry loop)
+  // must NOT reset the blink state, or the LED stays stuck ON.
+  if (led_error_flags != prev) {
+    led_code_phase = 0;
+    led_code_current_blinks = 0;  // force re-init on next handler
+    led_code_timer = millis();
+  }
 }
 
 void ledClearError(uint8_t error) {
