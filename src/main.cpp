@@ -19,7 +19,7 @@
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.5.4"
+#define VERSION "1.5.5"
 
 #include "camera.h"
 #include "camera_server.h"
@@ -78,6 +78,13 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(SERIAL_TIMEOUT);
   delay(2);
+
+  // Keep camera powered OFF during boot to prevent unclean power-up.
+  // ESP32-CAM controls camera power via MOS transistor on PWDN pin.
+  // GPIO32 state during early boot is undefined; force it HIGH here
+  // to ensure the camera stays off until cameraInit() cycles power properly.
+  pinMode(CAMERA_PIN_PWDN, OUTPUT);
+  digitalWrite(CAMERA_PIN_PWDN, HIGH);  // cut camera power
 
   int reason = rtc_get_reset_reason(0); // cpu0
   if (reason != 12) {                   // 12, SW_CPU_RESET,  Software reset CPU
@@ -221,6 +228,14 @@ String serialRead() {
 }
 
 void cameraInit() {
+  // Full power cycle with proper timing for MOS-based camera power control.
+  // Library default 10ms is too short; camera module caps need 500ms+ to discharge.
+  // Pass PWDN=-1 to skip library's toggle (already handled here).
+  digitalWrite(CAMERA_PIN_PWDN, HIGH);  // cut camera power
+  delay(500);  // full discharge of camera module capacitors
+  digitalWrite(CAMERA_PIN_PWDN, LOW);   // restore camera power
+  delay(300);  // stabilization + XCLK lock
+
   xQueueHttpFrame = xQueueCreate(2, 2 * sizeof(camera_fb_t *));
   pixformat_t pixel_format = PIXFORMAT_JPEG;
   esp_err_t err = register_camera(
@@ -229,12 +244,15 @@ void cameraInit() {
       CAMERA_PIN_Y2, CAMERA_PIN_Y3, CAMERA_PIN_Y4, CAMERA_PIN_Y5, CAMERA_PIN_Y6,
       CAMERA_PIN_Y7, CAMERA_PIN_Y8, CAMERA_PIN_Y9, CAMERA_PIN_XCLK,
       CAMERA_PIN_PCLK, CAMERA_PIN_VSYNC, CAMERA_PIN_HREF, CAMERA_PIN_SIOD,
-      CAMERA_PIN_SIOC, CAMERA_PIN_PWDN, CAMERA_PIN_RESET);
+      CAMERA_PIN_SIOC, -1, CAMERA_PIN_RESET);
 
   if (err != ESP_OK) {
     LED_STATUS_CODE(LED_ERR_CAMERA_NOT_FOUND);
     return;
   }
+
+  // Camera init succeeded - clear error code, back to slow blink (waiting connection)
+  LED_STATUS_DISCONNECTED();
 
   register_httpd(xQueueHttpFrame, NULL, true);
   isCameraStarted = true;
