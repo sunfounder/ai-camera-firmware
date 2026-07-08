@@ -1,7 +1,10 @@
 
 #if defined(ESP32_CAM)
-#define CAMERA_PIN_PWDN 32
+// ESP32-CAM has no PWDN/RST routed to camera connector.
+// It uses a MOS transistor on GPIO32 to control camera power.
+#define CAMERA_PIN_PWDN -1
 #define CAMERA_PIN_RESET -1
+#define CAMERA_PIN_PWR 32
 #define CAMERA_PIN_XCLK 0
 #define CAMERA_PIN_SIOD 26
 #define CAMERA_PIN_SIOC 27
