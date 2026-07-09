@@ -79,13 +79,6 @@ void setup() {
   Serial.setTimeout(SERIAL_TIMEOUT);
   delay(2);
 
-  // Keep camera powered OFF during boot to prevent unclean power-up.
-  // CAMERA_PIN_PWR controls MOS transistor for camera power.
-  // GPIO state during early boot is undefined; force it HIGH here
-  // to ensure the camera stays off until cameraInit() cycles power properly.
-  pinMode(CAMERA_PIN_PWR, OUTPUT);
-  digitalWrite(CAMERA_PIN_PWR, HIGH);  // cut camera power
-
   int reason = rtc_get_reset_reason(0); // cpu0
   if (reason != 12) {                   // 12, SW_CPU_RESET,  Software reset CPU
     Serial.println(VERSION);
@@ -228,22 +221,15 @@ String serialRead() {
 }
 
 void cameraInit() {
-  static int retry_count = 0;
-  if (retry_count > 0) {
-    log_i("Camera init retry #%d", retry_count);
-  }
-  retry_count++;
+  // Pass PWDN normally; library handles camera power-on reset.
 
-  // Power cycle camera via MOS transistor (CAMERA_PIN_PWR).
-  // Library default 10ms PWDN toggle is too short for module caps to discharge.
-  // Split delays into 10ms chunks so ledStatusHandler keeps running
-  // (long blocking delays freeze the LED blink animation).
-  if (CAMERA_PIN_PWR >= 0) {
-    digitalWrite(CAMERA_PIN_PWR, HIGH);  // cut camera power
-    for (int i = 0; i < 50; i++) { delay(10); ledStatusHandler(); }  // 500ms
-    digitalWrite(CAMERA_PIN_PWR, LOW);   // restore camera power
-    for (int i = 0; i < 30; i++) { delay(10); ledStatusHandler(); }  // 300ms
+  // Retry cooldown: wait 5s between attempts so LED error code is visible
+  static uint32_t last_attempt = 0;
+  uint32_t now = millis();
+  if (now - last_attempt < 5000) {
+    return;
   }
+  last_attempt = now;
 
   xQueueHttpFrame = xQueueCreate(2, 2 * sizeof(camera_fb_t *));
   pixformat_t pixel_format = PIXFORMAT_JPEG;
