@@ -119,6 +119,8 @@ def create_zip(version):
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(FIRMWARE_DIR):
                 # 排除zip文件本身
+                # Exclude zip files and Python cache dirs
+                dirs[:] = [d for d in dirs if d != '__pycache__']
                 files = [f for f in files if not f.endswith('.zip')]
                 for file in files:
                     file_path = os.path.join(root, file)
