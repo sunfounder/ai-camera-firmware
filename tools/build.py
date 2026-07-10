@@ -75,7 +75,8 @@ def update_bat_version(version):
         # 替换版本号
         old_version_pattern = r'ai-camera-firmware\.v[\d.]+-factory\.bin'
         new_version = f'ai-camera-firmware.v{version}-factory.bin'
-        content = content.replace("ai-camera-firmware.v1.5.3-factory.bin", new_version)
+        import re
+        content = re.sub(r'ai-camera-firmware\.v[\d.]+-factory\.bin', new_version, content)
         
         with open(bat_file, "w", encoding="utf-8") as f:
             f.write(content)
