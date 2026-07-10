@@ -19,7 +19,7 @@
   Website: http://www.sunfounder.com
            https://docs.sunfounder.com
  *******************************************************************/
-#define VERSION "1.5.4"
+#define VERSION "1.5.5"
 
 #include "camera.h"
 #include "camera_server.h"
@@ -129,6 +129,11 @@ void wsServerCameraHandler() {
     log_i("Total PSRAM: %d", ESP.getPsramSize());
     log_i("Free PSRAM: %d", ESP.getFreePsram());
   }
+
+  /* Check for frame capture errors during operation */
+  if (camera_frame_error) {
+    LED_STATUS_CODE(LED_ERR_FRAME_CAPTURE);
+  }
 }
 
 void serialReceivedHandler() {
@@ -216,15 +221,35 @@ String serialRead() {
 }
 
 void cameraInit() {
+  // Pass PWDN normally; library handles camera power-on reset.
+
+  // Retry cooldown: wait 5s between attempts so LED error code is visible
+  static uint32_t last_attempt = 0;
+  uint32_t now = millis();
+  if (now - last_attempt < 5000) {
+    return;
+  }
+  last_attempt = now;
+
   xQueueHttpFrame = xQueueCreate(2, 2 * sizeof(camera_fb_t *));
   pixformat_t pixel_format = PIXFORMAT_JPEG;
-  register_camera(
+  esp_err_t err = register_camera(
       pixel_format, FRAMESIZE, FB_COUNT, xQueueHttpFrame,
       settingsGetCameraVerticalFlip(), settingsGetCameraHorizontalMirror(),
       CAMERA_PIN_Y2, CAMERA_PIN_Y3, CAMERA_PIN_Y4, CAMERA_PIN_Y5, CAMERA_PIN_Y6,
       CAMERA_PIN_Y7, CAMERA_PIN_Y8, CAMERA_PIN_Y9, CAMERA_PIN_XCLK,
       CAMERA_PIN_PCLK, CAMERA_PIN_VSYNC, CAMERA_PIN_HREF, CAMERA_PIN_SIOD,
       CAMERA_PIN_SIOC, CAMERA_PIN_PWDN, CAMERA_PIN_RESET);
+
+  if (err != ESP_OK) {
+    LED_STATUS_CODE(LED_ERR_CAMERA_NOT_FOUND);
+    return;
+  }
+
+  // Camera init succeeded - clear probe error flag.
+  // LED reverts to connection-state display (slow blink / solid on)
+  LED_CLEAR_CODE(LED_ERR_CAMERA_NOT_FOUND);
+
   register_httpd(xQueueHttpFrame, NULL, true);
   isCameraStarted = true;
   log_i("Free PSRAM: %d", ESP.getFreePsram());

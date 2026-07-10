@@ -75,7 +75,8 @@ def update_bat_version(version):
         # 替换版本号
         old_version_pattern = r'ai-camera-firmware\.v[\d.]+-factory\.bin'
         new_version = f'ai-camera-firmware.v{version}-factory.bin'
-        content = content.replace("ai-camera-firmware.v1.5.3-factory.bin", new_version)
+        import re
+        content = re.sub(r'ai-camera-firmware\.v[\d.]+-factory\.bin', new_version, content)
         
         with open(bat_file, "w", encoding="utf-8") as f:
             f.write(content)
@@ -83,6 +84,29 @@ def update_bat_version(version):
         print(f"{Emoji.SUCCESS} Updated version in install_ESP32.bat to v{version}")
     except Exception as e:
         print(f"{Emoji.ERROR} Failed to update bat file: {e}")
+        sys.exit(1)
+
+# 更新install_ESP32.sh中的版本号
+def update_sh_version(version):
+    sh_file = os.path.join(FIRMWARE_DIR, "install_ESP32.sh")
+    if not os.path.exists(sh_file):
+        print(f"{Emoji.WARNING} {sh_file} not found, skipping version update")
+        return
+    
+    try:
+        with open(sh_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        # 替换版本号
+        import re
+        content = re.sub(r'v[\d.]+-factory\.bin', f'v{version}-factory.bin', content)
+        
+        with open(sh_file, "w", encoding="utf-8") as f:
+            f.write(content)
+        
+        print(f"{Emoji.SUCCESS} Updated version in install_ESP32.sh to v{version}")
+    except Exception as e:
+        print(f"{Emoji.ERROR} Failed to update sh file: {e}")
         sys.exit(1)
 
 # 压缩固件目录为zip
@@ -95,6 +119,8 @@ def create_zip(version):
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(FIRMWARE_DIR):
                 # 排除zip文件本身
+                # Exclude zip files and Python cache dirs
+                dirs[:] = [d for d in dirs if d != '__pycache__']
                 files = [f for f in files if not f.endswith('.zip')]
                 for file in files:
                     file_path = os.path.join(root, file)
@@ -139,6 +165,8 @@ def main():
 
     # 更新install_ESP32.bat中的版本号
     update_bat_version(version)
+    # 更新install_ESP32.sh中的版本号
+    update_sh_version(version)
 
     # 定义文件路径
     OTA_BIN = os.path.join(FIRMWARE_DIR, f"{SCRIPT_NAME}.v{version}-ota.bin")

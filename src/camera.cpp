@@ -7,12 +7,24 @@ static const char *TAG = "camera";
 static QueueHandle_t xQueueFrameO = NULL;
 static TaskHandle_t cameraTaskHandle = NULL;
 
+volatile bool camera_frame_error = false;
+
+#define FRAME_ERROR_THRESHOLD 10
+
 static void task_process_handler(void *arg) {
+  uint8_t consecutive_null = 0;
   while (true) {
     camera_fb_t *frame = esp_camera_fb_get();
     if (frame) {
+      consecutive_null = 0;
       xQueueSend(xQueueFrameO, &frame, portMAX_DELAY);
       // xQueueOverwrite(xQueueFrameO, &frame);
+    } else {
+      consecutive_null++;
+      if (consecutive_null >= FRAME_ERROR_THRESHOLD) {
+        camera_frame_error = true;
+      }
+      vTaskDelay(pdMS_TO_TICKS(50)); // avoid tight loop on error
     }
   }
 }
@@ -25,14 +37,15 @@ void camera_stop() {
   }
 }
 
-void register_camera(const pixformat_t pixel_fromat,
-                     const framesize_t frame_size, const uint8_t fb_count,
-                     const QueueHandle_t frame_o, const int vflip,
-                     const int hflip, const int d0, const int d1, const int d2,
-                     const int d3, const int d4, const int d5, const int d6,
-                     const int d7, const int xclk, const int pclk,
-                     const int vsync, const int href, const int sda,
-                     const int scl, const int pwdn, const int reset) {
+esp_err_t register_camera(const pixformat_t pixel_fromat,
+                          const framesize_t frame_size, const uint8_t fb_count,
+                          const QueueHandle_t frame_o, const int vflip,
+                          const int hflip, const int d0, const int d1,
+                          const int d2, const int d3, const int d4,
+                          const int d5, const int d6, const int d7,
+                          const int xclk, const int pclk, const int vsync,
+                          const int href, const int sda, const int scl,
+                          const int pwdn, const int reset) {
 
 #if CONFIG_CAMERA_MODULE_ESP_EYE || CONFIG_CAMERA_MODULE_ESP32_CAM_BOARD
   /* IO13, IO14 is designed for JTAG by default,
@@ -89,17 +102,15 @@ void register_camera(const pixformat_t pixel_fromat,
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Camera init failed with error 0x%x", err);
-    return;
+    return err;
   }
 
   sensor_t *s = esp_camera_sensor_get();
-  // s->set_vflip(s, vflip);  // flip it back
-  // s->set_hmirror(s, hflip);
-  // // initial sensors are flipped vertically and colors are a bit saturated
-  // if (s->id.PID == OV3660_PID) {
-  //   s->set_brightness(s, 1);   // up the blightness just a bit
-  //   s->set_saturation(s, -2);  // lower the saturation
-  // }
+  if (s == NULL) {
+    ESP_LOGE(TAG, "Camera sensor not found");
+    return ESP_ERR_CAMERA_NOT_DETECTED;
+  }
+
   s->set_hmirror(s, settingsGetCameraHorizontalMirror());
   s->set_vflip(s, settingsGetCameraVerticalFlip());
   s->set_brightness(s, settingsGetCameraBrightness());
@@ -110,4 +121,6 @@ void register_camera(const pixformat_t pixel_fromat,
   xQueueFrameO = frame_o;
   xTaskCreatePinnedToCore(task_process_handler, TAG, 1 * 1024, NULL, 5,
                           &cameraTaskHandle, 1);
+
+  return ESP_OK;
 }
